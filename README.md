@@ -37,6 +37,22 @@ This project is a control interface for accessory electronics embedded within a 
 
 - **PlatformIO:** [Homepage](https://platformio.org/)
 
+## Development
+
+### Hardware Verification
+
+To assist with wiring and debugging, a hardware verification function is included in the project. This function (`verifyHardwareConnections()`) guides you through checking the connections of the buttons and will be expanded to include other hardware components as they are integrated.
+
+You can enable or disable this feature by modifying the `VERIFY_HARDWARE` boolean flag at the top of `src/main.cpp`:
+
+```cpp
+const bool VERIFY_HARDWARE = true; // Set to false to skip hardware verification
+```
+
+### Pin Definitions
+
+All hardware pin assignments for the project are centralized in a dedicated header file: `include/pins.h`. This makes it easy to review and modify pin configurations in one place.
+
 ## Building and Running
 
 This project is built and managed using PlatformIO.
