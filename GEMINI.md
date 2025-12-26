@@ -30,8 +30,16 @@ Here are the suggested connections for the accessories.
 
 ### Momentary Buttons
 
-*   **Button 1:** Connect one leg to **GPIO36** and the other leg to **GND**.
-*   **Button 2:** Connect one leg to **GPIO39** and the other leg to **GND**.
+For each button, a 10k Ohm pull-down resistor is required.
+
+*   **Button 1:**
+    *   Connect one leg to **3.3V**.
+    *   Connect the other leg to **GPIO12**.
+    *   Connect a 10k Ohm resistor from **GPIO12** to **GND**.
+*   **Button 2:**
+    *   Connect one leg to **3.3V**.
+    *   Connect the other leg to **GPIO13**.
+    *   Connect a 10k Ohm resistor from **GPIO13** to **GND**.
 
 ### LEDs (Addressable)
 
