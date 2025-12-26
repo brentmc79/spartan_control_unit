@@ -3,6 +3,8 @@
 
 #include <Adafruit_ST7789.h>
 
-void verifyHardwareConnections(Adafruit_ST7789& tft);
+#include <Adafruit_NeoPixel.h>
+
+void verifyHardwareConnections(Adafruit_ST7789& tft, Adafruit_NeoPixel& pixels);
 
 #endif // HARDWARE_VERIFICATION_H

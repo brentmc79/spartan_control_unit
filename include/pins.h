@@ -15,4 +15,7 @@
 #define FAN_1_CTRL 26 // GPIO for Fan 1 control
 #define FAN_2_CTRL 27 // GPIO for Fan 2 control
 
+#define NUM_LEDS 2
+
+
 #endif // PINS_H
