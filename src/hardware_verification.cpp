@@ -38,7 +38,8 @@ void verifyButtons(Adafruit_ST7789& tft) {
       if (newBtn2Val == LOW) {
         tft.fillRoundRect(166, 11, 143, 48, 5, ST77XX_BLACK);
         tft.setTextColor(ST77XX_WHITE);
-      } else {
+      }
+      else {
         tft.fillRoundRect(166, 11, 143, 48, 5, ST77XX_WHITE);
         tft.setTextColor(ST77XX_BLACK);
       }
@@ -130,7 +131,42 @@ void verifyLEDs(Adafruit_ST7789& tft, Adafruit_NeoPixel& pixels) {
   }
 }
 
+void verifyFans(Adafruit_ST7789& tft) {
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextSize(2);
+  tft.setTextColor(ST77XX_WHITE);
+  tft.setCursor(20, 20);
+  tft.println("Verifying Fan 1 (GPIO26)");
+  tft.setCursor(20, 40);
+  tft.println("Press Button 1 to toggle fan");
+  tft.setCursor(20, 60);
+  tft.println("Press Button 2 to continue");
+
+  pinMode(FAN_1_CTRL, OUTPUT);
+  digitalWrite(FAN_1_CTRL, LOW); // Fan off initially
+
+  bool fan_on = false;
+
+  while (true) {
+    if (digitalRead(BUTTON_1) == LOW) { // Button 1 pressed
+      fan_on = !fan_on;
+      digitalWrite(FAN_1_CTRL, fan_on ? HIGH : LOW);
+      tft.fillScreen(ST77XX_BLACK);
+      tft.setCursor(20, 20);
+      tft.println(fan_on ? "Fan 1 ON" : "Fan 1 OFF");
+      delay(500); // Debounce and display time
+    }
+    if (digitalRead(BUTTON_2) == LOW) { // Button 2 pressed, continue
+      digitalWrite(FAN_1_CTRL, LOW); // Ensure fan is off
+      delay(200); // Debounce
+      break;
+    }
+    delay(50);
+  }
+}
+
 void verifyHardwareConnections(Adafruit_ST7789& tft, Adafruit_NeoPixel& pixels) {
   //verifyButtons(tft);
-  verifyLEDs(tft, pixels);
+  //verifyLEDs(tft, pixels);
+  verifyFans(tft);
 }

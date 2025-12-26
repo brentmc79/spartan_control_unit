@@ -16,6 +16,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(BUTTON_1, INPUT_PULLUP);
   pinMode(BUTTON_2, INPUT_PULLUP);
+  pinMode(FAN_1_CTRL, OUTPUT);
   delay(100); // Allow pins to settle
 
   pixels.begin();
