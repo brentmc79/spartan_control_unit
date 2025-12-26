@@ -1,0 +1,46 @@
+# Spartan Control Unit
+
+This project is a control interface for accessory electronics embedded within a Spartan cosplay costume inspired by the Halo video game franchise. It is built using the [PlatformIO](https://platformio.org/) framework for the ESP32 microcontroller.
+
+## Features
+
+- UI navigation via 2 momentary buttons
+- Toggle cooling fans on and off
+- Control color, brightness, and display style of addressable LEDs
+- Screensaver animation when idle
+- Multiple boot-up animation sequences
+- Configuration is saved and loaded on boot
+
+## Hardware
+
+- Ideaspark ESP32 1.9" TFT LCD Display
+- 2 momentary buttons
+- 2 Addressable LEDs in series
+- 2 3010 DC 5v fans
+
+### Purchase Links (Amazon)
+
+- **Display:** [ESP32 1.9 inch TFT Display](https://www.amazon.com/s?k=ESP32+1.9+inch+TFT+display)
+- **Buttons:** [Assorted Momentary Push Buttons](https://amzn.to/3TnHFwf)
+- **LEDs:** [Inlightss WLED Controller Complete Kit](https://www.amazon.com/stores/page/492E9432-8E4A-433B-8646-95F56C731838)
+- **Fans:** [3010 DC 5v Fans](https://www.amazon.com/s?k=3010+dc+5v+fan)
+
+## Software
+
+### Libraries
+
+- **TFT_eSPI:** [Documentation](https://github.com/Bodmer/TFT_eSPI)
+- **Adafruit GFX Library:** [Documentation](https://learn.adafruit.com/adafruit-gfx-graphics-library)
+- **Adafruit ST7735 and ST7789 Library:** [Documentation](https://github.com/adafruit/Adafruit-ST7735-Library)
+
+### Framework
+
+- **PlatformIO:** [Homepage](https://platformio.org/)
+
+## Building and Running
+
+This project is built and managed using PlatformIO.
+
+-   **Build:** To build the project, use the command `pio run`.
+-   **Upload:** To upload the compiled firmware to the ESP32 board, use the command `pio run --target upload`.
+-   **Monitor:** To view the serial output from the board, use the command `pio device monitor`.
