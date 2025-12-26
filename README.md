@@ -20,9 +20,9 @@ This project is a control interface for accessory electronics embedded within a 
 
 ### Purchase Links (Amazon)
 
-- **Display:** [ESP32 1.9 inch TFT Display](https://www.amazon.com/s?k=ESP32+1.9+inch+TFT+display)
-- **Buttons:** [Assorted Momentary Push Buttons](https://amzn.to/3TnHFwf)
-- **LEDs:** [Inlightss WLED Controller Complete Kit](https://www.amazon.com/stores/page/492E9432-8E4A-433B-8646-95F56C731838)
+- **Display:** [ESP32 1.9 inch TFT Display](https://a.co/d/jlKWzdy)
+- **Buttons:** [Assorted Momentary Push Buttons](https://www.adafruit.com/product/3101)
+- **LEDs:** [Inlightss WLED Controller Complete Kit](https://a.co/d/a8Dwrdc)
 - **Fans:** [3010 DC 5v Fans](https://www.amazon.com/s?k=3010+dc+5v+fan)
 
 ## Software
