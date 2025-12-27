@@ -11,8 +11,8 @@
 #define BUTTON_1 12
 #define BUTTON_2 13
 
-#define LED_DATA 25 // GPIO for addressable LEDs
-#define FAN_1_CTRL 26 // GPIO for Fan 1 control
+#define LED_DATA 8 // GPIO for addressable LEDs
+#define FAN_1_CTRL 7 // GPIO for Fan 1 control
 #define FAN_2_CTRL 27 // GPIO for Fan 2 control
 
 #define NUM_LEDS 2

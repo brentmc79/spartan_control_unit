@@ -166,7 +166,7 @@ void verifyFans(Adafruit_ST7789& tft) {
 }
 
 void verifyHardwareConnections(Adafruit_ST7789& tft, Adafruit_NeoPixel& pixels) {
-  //verifyButtons(tft);
+  verifyButtons(tft);
   //verifyLEDs(tft, pixels);
-  verifyFans(tft);
+  //verifyFans(tft);
 }
