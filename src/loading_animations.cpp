@@ -30,7 +30,7 @@ void drawNoise(int intensity, Adafruit_ST7789* displayPtr) {
   }
 }
 
-void loadingAnimation(Adafruit_ST7789* displayPtr){
+void loadingAnimation1(Adafruit_ST7789* displayPtr){
   Adafruit_ST7789& display = *displayPtr;
 
   for(int i=0; i<1; i++){
@@ -72,7 +72,7 @@ void loadingAnimation(Adafruit_ST7789* displayPtr){
   Serial.println("Welcome to Wokwi :-)");
 }
 
-void renderHaloLoadingAnimation(Adafruit_ST7789* displayPtr){
+void loadingAnimation2(Adafruit_ST7789* displayPtr){
   Adafruit_ST7789& display = *displayPtr;
   long screenWidth = display.width();
   long screenHeight = display.height();
@@ -140,7 +140,7 @@ void renderHaloLoadingAnimation(Adafruit_ST7789* displayPtr){
   //delay(500);
 }
 
-void loadingAnimation2(Adafruit_ST7789* displayPtr){
+void loadingAnimation3(Adafruit_ST7789* displayPtr){
   Adafruit_ST7789& display = *displayPtr;
   long screenWidth = display.width();
   long screenHeight = display.height();
