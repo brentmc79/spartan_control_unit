@@ -1,15 +1,33 @@
 # Spartan Control Unit
 
-This project is a control interface for accessory electronics embedded within a Spartan cosplay costume inspired by the Halo video game franchise. It is built using the [PlatformIO](https://platformio.org/) framework for the ESP32 microcontroller.
+## Project Overview
+
+This is a C++ project for an ESP32 microcontroller using the PlatformIO framework. It's a control interface for accessory electronics embedded within a Spartan cosplay costume inspired by the Halo video game franchise.
 
 ## Features
 
-- UI navigation via 2 momentary buttons
+- UI navigation via 2 momentary buttons where one button traverses UI elements, and the other button selects the active UI element
 - Toggle cooling fans on and off
-- Control color, brightness, and display style of addressable LEDs
-- Screensaver animation when idle
-- Multiple boot-up animation sequences
-- Configuration is saved and loaded on boot
+- Controlling the color, brightness, and display style of a pair of addressable LEDs
+- Configuring a screensaver animation to play when idle
+- Displaying one of several boot-up animation sequences
+- Storing selected configuration to be loaded on next boot up
+
+## System Architecture
+
+This project is designed to run on two separate ESP32 devices that communicate with each other. The same codebase is used for both devices, but it is compiled with different configurations based on the target device.
+
+### Interface Device
+
+*   **MCU:** ESP32 Dev Module with integrated TFT LCD
+*   **Peripherals:** Two momentary push buttons for UI navigation
+*   **Role:** This device acts as the user interface. It has a screen and buttons to control the system.
+
+### Receiver Device
+
+*   **MCU:** ESP32-S3 Super Mini
+*   **Peripherals:** Addressable LEDs and a 5V DC fan (controlled via a transistor)
+*   **Role:** This device receives commands from the Interface Device to control the LEDs and fan.
 
 ## Hardware
 
@@ -18,24 +36,74 @@ This project is a control interface for accessory electronics embedded within a 
 - 2 Addressable LEDs in series
 - 2 3010 DC 5v fans
 
-### Purchase Links (Amazon)
+### Pinout
 
-- **Display:** [ESP32 1.9 inch TFT Display](https://a.co/d/jlKWzdy)
-- **Buttons:** [Assorted Momentary Push Buttons](https://www.adafruit.com/product/3101)
-- **LEDs:** [Inlightss WLED Controller Complete Kit](https://a.co/d/a8Dwrdc)
-- **Fans:** [3010 DC 5v Fans](https://www.amazon.com/s?k=3010+dc+5v+fan)
+![Pinout Diagram](docs/pinout.png)
 
-## Software
+### Wiring
 
-### Libraries
+Here are the suggested connections for the accessories.
 
-- **TFT_eSPI:** [Documentation](https://github.com/Bodmer/TFT_eSPI)
-- **Adafruit GFX Library:** [Documentation](https://learn.adafruit.com/adafruit-gfx-graphics-library)
-- **Adafruit ST7735 and ST7789 Library:** [Documentation](https://github.com/adafruit/Adafruit-ST7735-Library)
+#### Momentary Buttons
 
-### Framework
+For each button, a 10k Ohm pull-down resistor is required.
 
-- **PlatformIO:** [Homepage](https://platformio.org/)
+*   **Button 1:**
+    *   Connect one leg to **3.3V**.
+    *   Connect the other leg to **GPIO12**.
+    *   Connect a 10k Ohm resistor from **GPIO12** to **GND**.
+*   **Button 2:**
+    *   Connect one leg to **3.3V**.
+    *   Connect the other leg to **GPIO13**.
+    *   Connect a 10k Ohm resistor from **GPIO13** to **GND**.
+
+#### LEDs (Addressable)
+
+*   **Data Pin:** Connect to `GPIO25` on the ESP32.
+    *   **Note:** Since the addressable LEDs are 5V and the ESP32's GPIOs are 3.3V, a logic level shifter is recommended between `GPIO25` and the LED data pin to ensure reliable data transmission.
+*   **Power:** Connect the LED strip's 5V pin to an external 5V power supply.
+*   **Ground:** Connect the LED strip's GND pin to the same ground as the ESP32 and the 5V power supply.
+
+#### Fans (5V)
+
+To control the 5V fans, you'll need a transistor (like a MOSFET) for each fan, as the ESP32's GPIO pins cannot provide enough power.
+
+*   **Fan 1 Control:** `GPIO26`
+*   **Fan 2 Control:** `GPIO27`
+
+##### Wiring with N-Channel MOSFETs (for each fan):
+
+1.  Connect the **Gate** of the MOSFET to the GPIO pin (e.g., `GPIO26`).
+2.  Connect the **Source** of the MOSFET to Ground (GND).
+3.  Connect the **Drain** of the MOSFET to the negative (black) wire of the fan.
+4.  Connect the positive (red) wire of the fan to the 5V power supply.
+
+## Project Structure
+
+-   `src/main.cpp`: The main entry point of the application. It initializes the display and calls the animation functions.
+-   `src/unsc_logo.cpp` and `include/unsc_logo.h`: These files contain the bitmap data for the UNSC logo and the function to display and scroll it.
+-   `src/loading_animations.cpp` and `include/loading_animations.h`: These files contain several different loading animations that can be used in the boot sequence.
+-   `platformio.ini`: The PlatformIO configuration file, which specifies the board, framework, and library dependencies.
+
+## Building and Running
+
+This project is built and managed using PlatformIO.
+
+-   **Build:** To build the project, use the command `pio run`.
+-   **Upload:** To upload the compiled firmware to the ESP32 board, use the command `pio run --target upload`.
+-   **Monitor:** To view the serial output from the board, use the command `pio device monitor`.
+
+### Compiling for a specific device
+
+The `platformio.ini` file has two environments defined:
+
+*   `esp32dev`: Builds the firmware for the **Interface Device**. It sets the `DEVICE_MODE` build flag to `DeviceMode::INTERFACE`.
+*   `esp32-s3-supermini`: Builds the firmware for the **Receiver Device**. It sets the `DEVICE_MODE` build flag to `DeviceMode::RECEIVER`.
+
+To build for a specific device, you can use the `-e` flag with the PlatformIO CLI. For example:
+
+*   Build for Interface Device: `pio run -e esp32dev`
+*   Build for Receiver Device: `pio run -e esp32-s3-supermini`
 
 ## Development
 
@@ -49,14 +117,10 @@ You can enable or disable this feature by modifying the `VERIFY_HARDWARE` boolea
 const bool VERIFY_HARDWARE = true; // Set to false to skip hardware verification
 ```
 
-### Pin Definitions
+### Development Conventions
 
-All hardware pin assignments for the project are centralized in a dedicated header file: `include/pins.h`. This makes it easy to review and modify pin configurations in one place.
+The code is written in C++ and follows the Arduino framework conventions. The code is organized into separate files for different functionalities, which is a good practice for embedded projects. The use of header files helps to keep the code modular and easy to maintain.
 
-## Building and Running
+There are no specific linting or formatting rules defined in the project, but the code is well-formatted and easy to read.
 
-This project is built and managed using PlatformIO.
-
--   **Build:** To build the project, use the command `pio run`.
--   **Upload:** To upload the compiled firmware to the ESP32 board, use the command `pio run --target upload`.
--   **Monitor:** To view the serial output from the board, use the command `pio device monitor`.
+Any ui/navigation code should be configuration-driven, allowing additional views, menu items, etc to added easily.
