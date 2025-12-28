@@ -1,0 +1,135 @@
+You are an experienced UI designer embracing modern, minimalistic design, with fantasy/scifi inspiration.
+
+Your role is to create a professional, beautiful set of mockups that are ready for delivery based on these requirements:
+
+{{requirements}}
+## 1. Overall Style & Visual Language
+This design represents a graphical user interface, displayed on a small 320x170px LCD, used to control integrated electronics within a scifi armor costume inspired by the Halo video game franchise. GUI interaction is via two physical buttons; one for traversing elements, and the other for selecting the active element.
+
+Core characteristics:
+- Dark background
+- Computer terminal blue/gree color palette with minimal accent colors
+- Futuristic scifi borders, with occasional greebles and asymetric chamfered corners
+
+Target perception:
+- Spartan
+- Simple to navigate
+- Dense, but still clear despite small display
+
+Output:
+- One mockup per menu
+- No surrounding graphics, only what is on the display
+- Ensure the 3:1 main/sidebar ratio is respected
+
+---
+
+## 2. Layout Structure
+
+### Global Layout
+- Two columns:
+  1. Main
+    - contains menu and interaction items
+    - 240px wide
+  2. Sidebar
+    - displays system status
+    - 80px wide
+
+---
+
+## 3. Menu Layout
+- Vertical list of traversable menu items
+- Clear indicator of "active" menu item
+- All submenus should have an item to back out, either text or an arrow
+- Four top-level menu items:
+  1. Visor
+  2. Thermals
+  3. HUD
+  4. Settings
+
+---
+
+## 4. Sidebar
+- Width: 240px
+- Contains icons indicating system status
+
+Icons:
+- Fan blades or wind, some way to indicate stationary vs moving air
+- LED light, indicating color and on or off status
+
+---
+
+## 5. Submenus
+
+### 5.1 Visor
+- Four menu items:
+  1. On/Off
+  2. Mode - Solid/Flashing/Pulsing
+  3. Color - White/Blue/Green/Yellow/Orange/Red
+  4. Brightness - 1/2/3/4
+
+---
+
+### 5.2 Thermals
+- On/Off toggle switch 
+
+---
+
+### 5.3 HUD
+- Radio button list with three options:
+  1. Biometric
+  2. Radar
+  3. Matrix
+
+---
+
+### 5.4 Settings
+- Menu items:
+  1. Boot sequence
+    - UNSC Logo
+    - Progress Bar
+
+---
+
+## 6. Color Palette
+- Primary background: deep charcoal / black
+- Border color: muted green
+- Text hierarchy:
+  - White (primary)
+  - Muted green (secondary)
+  - Dark green (disabled)
+
+---
+
+## 7. Effects & Interaction
+- Rounded corners throughout (sm)
+
+# Design tokens:
+{
+  // Global theme definition
+  "theme": {
+    "mode": "dark",
+    "style": [
+      "soft-neumorphism",
+      "fantasy-scifi"
+    ]
+  },
+
+  // Layout measurements and structure
+  "layout": {
+    "type": "lcd-display",
+    "grid": "two-column",
+    "sidebarWidth": 80
+  },
+
+  // Color system
+  "colors": {
+    "background": "#0B0D10",        // Main app background
+    "borders": "#00c2d4",
+    "textPrimary": "#FFFFFF",
+    "textSecondary": "#00c2d4",
+    "textMuted": "#002729",
+
+  }
+}
+{{/requirements}}
+

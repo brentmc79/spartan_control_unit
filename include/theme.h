@@ -18,7 +18,7 @@ const RGBColor COLOR_MUTED    = { 0,   39,  41 };   // Dark Green (Disabled/Inac
 
 // 3. Utility: Convert to RGB565 (Standard for TFT_eSPI / Adafruit_GFX)
 // Usage: tft.fillScreen(toRGB565(COLOR_BG));
-uint16_t toRGB565(RGBColor color) {
+inline uint16_t toRGB565(RGBColor color) {
     return ((color.r & 0xF8) << 8) | ((color.g & 0xFC) << 3) | (color.b >> 3);
 }
 
