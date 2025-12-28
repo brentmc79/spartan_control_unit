@@ -29,6 +29,59 @@ This project is designed to run on two separate ESP32 devices that communicate w
 *   **Peripherals:** Addressable LEDs and a 5V DC fan (controlled via a transistor)
 *   **Role:** This device receives commands from the Interface Device to control the LEDs and fan.
 
+## First-Time Setup: Device Pairing
+
+Before the devices can communicate, you need to perform a one-time setup to "pair" them by hardcoding their MAC addresses into the firmware.
+
+### 1. Upload Setup Firmware
+
+Build and upload the special setup firmware to each device using the following PlatformIO environments:
+
+*   **Interface Device:**
+    ```bash
+    pio run -e esp32dev-interface-setup --target upload
+    ```
+*   **Receiver Device:**
+    ```bash
+    pio run -e esp32-s3-supermini-receiver-setup --target upload
+    ```
+
+### 2. Discover MAC Addresses
+
+1.  Power on both devices.
+2.  The **Interface Device**'s screen will display its own MAC address and then wait to receive a message from the receiver.
+3.  The **Receiver Device** will start broadcasting its MAC address.
+4.  After a few seconds, the Interface Device will display the Receiver's MAC address on the screen.
+5.  You should now have both MAC addresses displayed on the Interface Device's screen.
+
+### 3. Update Firmware Configuration
+
+Open `src/main.cpp` and update the following variables with the MAC addresses you discovered:
+
+*   `sendAddress`: Set this to the MAC address of your **Interface Device**.
+*   `recvAddress`: Set this to the MAC address of your **Receiver Device**.
+
+For example:
+```cpp
+uint8_t sendAddress[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}; // Interface Device MAC
+uint8_t recvAddress[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66}; // Receiver Device MAC
+```
+
+### 4. Upload Final Firmware
+
+Now that the MAC addresses are configured, build and upload the final operational firmware:
+
+*   **Interface Device:**
+    ```bash
+    pio run -e esp32dev --target upload
+    ```
+*   **Receiver Device:**
+    ```bash
+    pio run -e esp32-s3-supermini --target upload
+    ```
+
+The devices are now paired and ready for use.
+
 ## Hardware
 
 - Ideaspark ESP32 1.9" TFT LCD Display

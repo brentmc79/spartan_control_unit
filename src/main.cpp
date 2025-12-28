@@ -38,6 +38,7 @@ OneButton buttonTwo = OneButton(BUTTON_2, true, true);
 
 uint8_t sendAddress[] = {0x44, 0x17, 0x93, 0x6C, 0x62, 0x84}; // esp32 1.9 in tft lcd
 uint8_t recvAddress[] = {0x24, 0x58, 0x7C, 0xDB, 0x31, 0x3C}; // esp32 s3 super mini
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 uint8_t (*peerAddress)[6] = NULL;
 
 typedef struct struct_message {
@@ -63,6 +64,13 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   Serial.println(incomingReadings.msg);
   Serial.print("Value from Peer: ");
   Serial.println(incomingReadings.val);
+
+  if (isInterfaceSetup) {
+    tft.setCursor(0, 80);
+    tft.print("Receiver MAC:");
+    tft.setCursor(0, 100);
+    tft.print(incomingReadings.msg);
+  }
 }
 
 void pingReceiver() {
@@ -125,6 +133,44 @@ void setupEspComms() {
   Serial.println(macAddress);
 }
 
+void setupInterfaceSetup() {
+  tft.init(170, 320);
+  tft.setRotation(1);
+  tft.setTextSize(2);
+  tft.setTextColor(ST77XX_WHITE);
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setCursor(0, 0);
+  tft.print("Interface MAC:");
+  tft.setCursor(0, 20);
+  tft.print(macAddress);
+
+  WiFi.mode(WIFI_STA);
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
+}
+
+void setupReceiverSetup() {
+  WiFi.mode(WIFI_STA);
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  esp_now_register_send_cb(esp_now_send_cb_t(OnDataSent));
+
+  esp_now_peer_info_t peerInfo = {};
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+  
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+    return;
+  }
+}
+
 // Execute any setup that is specific to the receiver device
 void setupReceiver() {
   peerAddress = &sendAddress;
@@ -159,11 +205,21 @@ void setupInterface() {
 void setup() {
   Serial.begin(115200);
 
-  Serial.println("Fetching MAC address...");
   macAddress = WiFi.macAddress();
-  Serial.print(macAddress);
+  Serial.print("MAC Address: ");
+  Serial.println(macAddress);
 
-  setupEspComms();
+  if (isInterfaceSetup) {
+    setupInterfaceSetup();
+    return; 
+  }
+
+  if (isReceiverSetup) {
+    setupReceiverSetup();
+    // No return, we need the loop to run
+  } else if (isInterface || isReceiver) {
+    setupEspComms();
+  }
 
   if (isReceiver) {
     setupReceiver();
@@ -181,6 +237,20 @@ void setup() {
 }
 
 void loop() {
+  if (isReceiverSetup) {
+    strcpy(outgoingReadings.msg, macAddress.c_str());
+    esp_now_send(broadcastAddress, (uint8_t *) &outgoingReadings, sizeof(outgoingReadings));
+    Serial.println("Sent MAC address");
+    delay(2000);
+    return;
+  }
+
+  if (isInterfaceSetup) {
+    // Keep alive to receive messages
+    delay(100);
+    return;
+  }
+
   buttonOne.tick();
   buttonTwo.tick();
 }
