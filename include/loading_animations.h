@@ -1,10 +1,9 @@
 #ifndef LOADING_ANIMATIONS_H
 #define LOADING_ANIMATIONS_H
 
-#include <Adafruit_ST7789.h>
+#include <TFT_eSPI.h>
 
-void loadingAnimation(Adafruit_ST7789* display);
-void renderHaloLoadingAnimation(Adafruit_ST7789* display);
-void loadingAnimation2(Adafruit_ST7789* display);
+void animateBootLogo(TFT_eSPI &tft, int logoWidth, int logoHeight, const uint16_t *logoBitmap);
+void animateLoadingBar(TFT_eSPI &tft, int x, int y, int w, int h, uint16_t color);
 
 #endif

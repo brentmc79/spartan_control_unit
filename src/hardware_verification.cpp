@@ -4,13 +4,15 @@
 #include <hardware_verification.h>
 #include <pins.h>
 
-void verifyButtons(Adafruit_ST7789& tft) {
+#include <TFT_eSPI.h>
+
+void verifyButtons(TFT_eSPI& tft) {
   Serial.println("Starting hardware verification...");
-  tft.fillScreen(ST77XX_BLACK);
-  tft.fillRoundRect(10, 10, 145, 50, 5, ST77XX_WHITE);
-  tft.fillRoundRect(165, 10, 145, 50, 5, ST77XX_WHITE);
+  tft.fillScreen(TFT_BLACK);
+  tft.fillRoundRect(10, 10, 145, 50, 5, TFT_WHITE);
+  tft.fillRoundRect(165, 10, 145, 50, 5, TFT_WHITE);
   tft.setTextSize(2);
-  tft.setTextColor(ST77XX_BLACK);
+  tft.setTextColor(TFT_BLACK);
   tft.setCursor(35, 28);
   tft.println("Button 1");
   tft.setCursor(195, 28);
@@ -24,11 +26,11 @@ void verifyButtons(Adafruit_ST7789& tft) {
     int newBtn2Val = digitalRead(BUTTON_2);
     if (newBtn1Val != btn1Val) {
       if (newBtn1Val == LOW) {
-        tft.fillRoundRect(11, 11, 143, 48, 5, ST77XX_BLACK);
-        tft.setTextColor(ST77XX_WHITE);
+        tft.fillRoundRect(11, 11, 143, 48, 5, TFT_BLACK);
+        tft.setTextColor(TFT_WHITE);
       } else {
-        tft.fillRoundRect(11, 11, 143, 48, 5, ST77XX_WHITE);
-        tft.setTextColor(ST77XX_BLACK);
+        tft.fillRoundRect(11, 11, 143, 48, 5, TFT_WHITE);
+        tft.setTextColor(TFT_BLACK);
       }
       tft.setCursor(35, 28);
       tft.println("Button 1");
@@ -36,12 +38,12 @@ void verifyButtons(Adafruit_ST7789& tft) {
     }
     if (newBtn2Val != btn2Val) {
       if (newBtn2Val == LOW) {
-        tft.fillRoundRect(166, 11, 143, 48, 5, ST77XX_BLACK);
-        tft.setTextColor(ST77XX_WHITE);
+        tft.fillRoundRect(166, 11, 143, 48, 5, TFT_BLACK);
+        tft.setTextColor(TFT_WHITE);
       }
       else {
-        tft.fillRoundRect(166, 11, 143, 48, 5, ST77XX_WHITE);
-        tft.setTextColor(ST77XX_BLACK);
+        tft.fillRoundRect(166, 11, 143, 48, 5, TFT_WHITE);
+        tft.setTextColor(TFT_BLACK);
       }
       tft.setCursor(195, 28);
       tft.println("Button 2");
@@ -53,12 +55,12 @@ void verifyButtons(Adafruit_ST7789& tft) {
   }
 }
 
-void verifyLEDs(Adafruit_ST7789& tft, Adafruit_NeoPixel& pixels) {
-  tft.fillScreen(ST77XX_BLACK);
-  tft.fillRoundRect(10, 10, 145, 50, 5, ST77XX_WHITE);
-  tft.fillRoundRect(165, 10, 145, 50, 5, ST77XX_WHITE);
+void verifyLEDs(TFT_eSPI& tft, Adafruit_NeoPixel& pixels) {
+  tft.fillScreen(TFT_BLACK);
+  tft.fillRoundRect(10, 10, 145, 50, 5, TFT_WHITE);
+  tft.fillRoundRect(165, 10, 145, 50, 5, TFT_WHITE);
   tft.setTextSize(2);
-  tft.setTextColor(ST77XX_BLACK);
+  tft.setTextColor(TFT_BLACK);
   tft.setCursor(50, 28);
   tft.println("LED 1");
   tft.setCursor(220, 28);
@@ -87,11 +89,11 @@ void verifyLEDs(Adafruit_ST7789& tft, Adafruit_NeoPixel& pixels) {
     int newBtn2Val = digitalRead(BUTTON_2);
     if (newBtn1Val != btn1Val) {
       if (newBtn1Val == LOW) { //Button down
-        tft.fillRoundRect(11, 11, 143, 48, 5, ST77XX_BLACK);
-        tft.setTextColor(ST77XX_WHITE);
+        tft.fillRoundRect(11, 11, 143, 48, 5, TFT_BLACK);
+        tft.setTextColor(TFT_WHITE);
       } else { //Button up
-        tft.fillRoundRect(11, 11, 143, 48, 5, ST77XX_WHITE);
-        tft.setTextColor(ST77XX_BLACK);
+        tft.fillRoundRect(11, 11, 143, 48, 5, TFT_WHITE);
+        tft.setTextColor(TFT_BLACK);
         if (led1Color < 4)
           led1Color++;
         else
@@ -105,11 +107,11 @@ void verifyLEDs(Adafruit_ST7789& tft, Adafruit_NeoPixel& pixels) {
     }
     if (newBtn2Val != btn2Val) {
       if (newBtn2Val == LOW) {
-        tft.fillRoundRect(166, 11, 143, 48, 5, ST77XX_BLACK);
-        tft.setTextColor(ST77XX_WHITE);
+        tft.fillRoundRect(166, 11, 143, 48, 5, TFT_BLACK);
+        tft.setTextColor(TFT_WHITE);
       } else {
-        tft.fillRoundRect(166, 11, 143, 48, 5, ST77XX_WHITE);
-        tft.setTextColor(ST77XX_BLACK);
+        tft.fillRoundRect(166, 11, 143, 48, 5, TFT_WHITE);
+        tft.setTextColor(TFT_BLACK);
         if (led2Color < 4)
           led2Color++;
         else
@@ -131,10 +133,10 @@ void verifyLEDs(Adafruit_ST7789& tft, Adafruit_NeoPixel& pixels) {
   }
 }
 
-void verifyFans(Adafruit_ST7789& tft) {
-  tft.fillScreen(ST77XX_BLACK);
+void verifyFans(TFT_eSPI& tft) {
+  tft.fillScreen(TFT_BLACK);
   tft.setTextSize(2);
-  tft.setTextColor(ST77XX_WHITE);
+  tft.setTextColor(TFT_WHITE);
   tft.setCursor(20, 20);
   tft.println("Verifying Fan 1 (GPIO26)");
   tft.setCursor(20, 40);
@@ -151,7 +153,7 @@ void verifyFans(Adafruit_ST7789& tft) {
     if (digitalRead(BUTTON_1) == LOW) { // Button 1 pressed
       fan_on = !fan_on;
       digitalWrite(FAN_1_CTRL, fan_on ? HIGH : LOW);
-      tft.fillScreen(ST77XX_BLACK);
+      tft.fillScreen(TFT_BLACK);
       tft.setCursor(20, 20);
       tft.println(fan_on ? "Fan 1 ON" : "Fan 1 OFF");
       delay(500); // Debounce and display time
@@ -165,7 +167,7 @@ void verifyFans(Adafruit_ST7789& tft) {
   }
 }
 
-void verifyHardwareConnections(Adafruit_ST7789& tft, Adafruit_NeoPixel& pixels) {
+void verifyHardwareConnections(TFT_eSPI& tft, Adafruit_NeoPixel& pixels) {
   verifyButtons(tft);
   //verifyLEDs(tft, pixels);
   //verifyFans(tft);

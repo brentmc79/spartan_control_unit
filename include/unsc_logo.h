@@ -1,12 +1,9 @@
 #ifndef UNSC_LOGO_H
 #define UNSC_LOGO_H
 
-#include <Adafruit_ST7789.h>
+#include <TFT_eSPI.h>
 
-extern const unsigned char unsc_bitmap_unsc_logo_cropped[] PROGMEM;
-extern const int unsc_bitmap_allArray_LEN;
-extern const unsigned char* unsc_bitmap_allArray[];
-
-void scrollLogo(Adafruit_ST7789* display);
+extern const unsigned char unsc_logo[];
+void drawUNSCLogo(TFT_eSPI &tft);
 
 #endif // UNSC_LOGO_H

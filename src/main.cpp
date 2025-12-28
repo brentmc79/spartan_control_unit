@@ -1,6 +1,5 @@
 #include <Arduino.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ST7789.h>
+#include <TFT_eSPI.h>
 #include <loading_animations.h>
 #include <unsc_logo.h>
 #include <hardware_verification.h>
@@ -30,7 +29,7 @@ const bool isReceiver = DEVICE_MODE == DeviceMode::RECEIVER;
 const bool isReceiverSetup = DEVICE_MODE == DeviceMode::RECEIVER_SETUP;
 
 String macAddress;
-Adafruit_ST7789 tft = Adafruit_ST7789(LCD_CS, LCD_DC, LCD_RST);
+TFT_eSPI tft = TFT_eSPI();
 Adafruit_NeoPixel pixels(NUM_LEDS, LED_DATA, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel onboardLED(1, 48, NEO_GRB + NEO_KHZ800);
 
@@ -76,7 +75,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 
 void pingReceiver() {
   Serial.println("Clicked!");
-  tft.fillScreen(ST77XX_BLACK);
+  tft.fillScreen(TFT_BLACK);
   tft.setCursor(10, 10);
   tft.print("Sending message...");
   //strcpy(outgoingReadings.msg, "Hello");
@@ -112,7 +111,7 @@ static void handleClick() {
 #define FONT_SIZE 2   // Adjust based on your specific font file
 
 /**
- * Renders a single "Spartan" style menu item using Adafruit_GFX.
+ * Renders a single "Spartan" style menu item using TFT_eSPI.
  */
 void drawMenuItem(int x, int y, int w, const char* label, bool isActive) {
     uint16_t fillColor, borderColor, textColor;
@@ -137,30 +136,23 @@ void drawMenuItem(int x, int y, int w, const char* label, bool isActive) {
     tft.drawRoundRect(x, y, w, BTN_HEIGHT, BTN_RADIUS, borderColor);
 
     if (isActive) {
-      tft.drawLine(x+w-40, y+BTN_HEIGHT-3, x+w-4, y+BTN_HEIGHT-3, ST77XX_BLACK);
-      tft.drawLine(x+w-39, y+BTN_HEIGHT-4, x+w-4, y+BTN_HEIGHT-4, ST77XX_BLACK);
+      tft.drawLine(x+w-40, y+BTN_HEIGHT-3, x+w-4, y+BTN_HEIGHT-3, TFT_BLACK);
+      tft.drawLine(x+w-39, y+BTN_HEIGHT-4, x+w-4, y+BTN_HEIGHT-4, TFT_BLACK);
     }
 
-    // 3. Setup Text
-    tft.setTextSize(FONT_SIZE);
-    tft.setTextColor(textColor); // Background color unnecessary as we just filled the rect
+    // 3. Setup and Draw Text using TFT_eSPI methods
+    tft.setTextColor(textColor);
+    tft.setTextSize(FONT_SIZE); 
     
-    // 4. Calculate Centered Position (The Adafruit Way)
-    int16_t  x1, y1;
-    uint16_t textW, textH;
+    // Set the reference datum to Middle-Left
+    tft.setTextDatum(ML_DATUM);
 
-    // Measure the bounding box of the text
-    // (0,0 is just a reference point for measurement)
-    tft.getTextBounds(finalLabel, 0, 0, &x1, &y1, &textW, &textH);
-
-    // Math to find the top-left cursor position that centers the text
-    //int textX = x + (w - textW) / 2;
-    int textX = x + 5;
-    int textY = y + 1 + (BTN_HEIGHT - textH) / 2;
+    // Calculate position for Middle-Left alignment
+    int textX = x + 15; // Indent text from the left edge
+    int textY = y + (BTN_HEIGHT / 2); // Vertically center
 
     // 5. Draw Text
-    tft.setCursor(textX, textY);
-    tft.print(finalLabel);
+    tft.drawString(finalLabel, textX, textY);
 }
 
 const char* menuItems[] = {"VISOR", "THERMALS", "HUD", "SETTINGS"};
@@ -226,11 +218,11 @@ void setupEspComms() {
 void setupInterfaceSetup() {
   Serial.println("Setting up interface setup");
 
-  tft.init(170, 320);
+  tft.begin();
   tft.setRotation(1);
   tft.setTextSize(2);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextColor(TFT_WHITE);
+  tft.fillScreen(TFT_BLACK);
   tft.setCursor(0, 0);
   tft.print("Interface MAC:");
   tft.setCursor(0, 20);
@@ -286,11 +278,11 @@ void setupInterface() {
   Serial.println("Setting up interface");
   peerAddress = &recvAddress;
 
-  tft.init(170, 320);
-  tft.setRotation(1);
+  tft.begin();
+  tft.setRotation(3);
   tft.setTextSize(2);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextColor(TFT_WHITE);
+  tft.fillScreen(TFT_BLACK);
   tft.setCursor(0, 0);
 
   // Single Click event attachment

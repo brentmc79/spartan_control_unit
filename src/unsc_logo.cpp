@@ -1,8 +1,8 @@
 #include "unsc_logo.h"
-#include <Adafruit_ST7789.h>
+#include <TFT_eSPI.h>
 
-// 'unsc_logo_cropped', 128x175px
-const unsigned char unsc_bitmap_unsc_logo_cropped [] PROGMEM = {
+// 'unsc_logo', 128x175px
+const unsigned char unsc_logo[] PROGMEM = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -180,22 +180,9 @@ const unsigned char unsc_bitmap_unsc_logo_cropped [] PROGMEM = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 2816)
-const int unsc_bitmap_allArray_LEN = 1;
-const unsigned char* unsc_bitmap_allArray[1] = {
-	unsc_bitmap_unsc_logo_cropped
-};
-
-void scrollLogo(Adafruit_ST7789* displayPtr){
-  Adafruit_ST7789& display = *displayPtr;
-  for(int i=0; i<420; i+=2){
-    display.fillScreen(ST77XX_BLACK);
-    if(random(0,30) != 0){
-      display.drawBitmap(90, display.height()-i, unsc_bitmap_allArray[0], 128, 170, ST77XX_WHITE);
-    } else {
-      i = i+4;
-    }
-    //drawNoise(1);
-    delay(5);
-  }
+void drawUNSCLogo(TFT_eSPI &tft) {
+    // Center the logo on the screen. Assumes 128x170 bitmap.
+    int16_t x = (tft.width() - 128) / 2;
+    int16_t y = (tft.height() - 170) / 2;
+    tft.drawXBitmap(x, y, unsc_logo, 128, 170, TFT_WHITE);
 }
