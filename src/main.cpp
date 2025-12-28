@@ -9,6 +9,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include <OneButton.h>
+#include <theme.h>
 
 enum class DeviceMode : uint8_t {
   INTERFACE,
@@ -105,25 +106,114 @@ void pingReceiver() {
 static void handleClick() {
 }
 
-void setupEspComms() {
-  WiFi.mode(WIFI_STA);
+// Configuration for button geometry
+#define BTN_HEIGHT 35
+#define BTN_RADIUS 6  // Corner roundness
+#define FONT_SIZE 2   // Adjust based on your specific font file
 
+/**
+ * Renders a single "Spartan" style menu item using Adafruit_GFX.
+ */
+void drawMenuItem(int x, int y, int w, const char* label, bool isActive) {
+    uint16_t fillColor, borderColor, textColor;
+    String finalLabel;
+
+    // 1. Determine State Colors & Text
+    if (isActive) {
+        fillColor   = HEX_BORDER; // Electric Cyan
+        borderColor = HEX_BORDER; // Electric Cyan
+        textColor   = HEX_BG;     // Dark text
+        finalLabel  = "> " + String(label) + " <";
+    } else {
+        fillColor   = HEX_MUTED;
+        borderColor = HEX_MUTED;    // Dark/Muted Green
+        textColor   = HEX_TEXT_PRI; // White text
+        finalLabel  = String(label);
+    }
+
+    // 2. Draw the Button Body
+    // Fill first to clear previous state
+    tft.fillRoundRect(x+2, y+2, w-4, BTN_HEIGHT-4, BTN_RADIUS-2, fillColor);
+    tft.drawRoundRect(x, y, w, BTN_HEIGHT, BTN_RADIUS, borderColor);
+
+    if (isActive) {
+      tft.drawLine(x+w-40, y+BTN_HEIGHT-3, x+w-4, y+BTN_HEIGHT-3, ST77XX_BLACK);
+      tft.drawLine(x+w-39, y+BTN_HEIGHT-4, x+w-4, y+BTN_HEIGHT-4, ST77XX_BLACK);
+    }
+
+    // 3. Setup Text
+    tft.setTextSize(FONT_SIZE);
+    tft.setTextColor(textColor); // Background color unnecessary as we just filled the rect
+    
+    // 4. Calculate Centered Position (The Adafruit Way)
+    int16_t  x1, y1;
+    uint16_t textW, textH;
+
+    // Measure the bounding box of the text
+    // (0,0 is just a reference point for measurement)
+    tft.getTextBounds(finalLabel, 0, 0, &x1, &y1, &textW, &textH);
+
+    // Math to find the top-left cursor position that centers the text
+    //int textX = x + (w - textW) / 2;
+    int textX = x + 5;
+    int textY = y + 1 + (BTN_HEIGHT - textH) / 2;
+
+    // 5. Draw Text
+    tft.setCursor(textX, textY);
+    tft.print(finalLabel);
+}
+
+const char* menuItems[] = {"VISOR", "THERMALS", "HUD", "SETTINGS"};
+const int menuCount = 4;
+int selectedIndex = 2; // "HUD" is selected
+
+void renderMenu() {
+    int startX = 0;
+    int startY = 5;
+    int gap = 7;       // Space between buttons
+    int width = 220;   // Width of the main column
+
+    for (int i = 0; i < menuCount; i++) {
+        // Calculate Y position for each item
+        int currentY = startY + (i * (BTN_HEIGHT + gap));
+        
+        // Check if this specific item is the selected one
+        bool isActive = (i == selectedIndex);
+        
+        drawMenuItem(startX, currentY, width, menuItems[i], isActive);
+    }
+}
+
+void renderColumnDivider() {
+  tft.drawLine(235, 0, 235, 170, HEX_MUTED);
+  tft.drawLine(236, 0, 236, 170, HEX_BORDER);
+  tft.drawLine(237, 0, 237, 170, HEX_MUTED);
+  tft.drawLine(238, 0, 238, 170, HEX_MUTED);
+  tft.drawLine(239, 0, 239, 170, HEX_BORDER);
+  tft.drawLine(240, 0, 240, 170, HEX_MUTED);
+}
+
+void setupEspComms() {
   // Init ESP-NOW
+  Serial.println("Initializing ESP-NOW");
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
 
   // Register callbacks
+  Serial.println("Registering callbacks");
   esp_now_register_send_cb(esp_now_send_cb_t(OnDataSent));
   esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 
   // Register peer
+  Serial.println("Registering peer");
   esp_now_peer_info_t peerInfo = {};
   memcpy(peerInfo.peer_addr, peerAddress, 6);
   peerInfo.channel = 0;  
   peerInfo.encrypt = false;
   
+  Serial.println("Adding peer");
   if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer");
     return;
@@ -134,6 +224,8 @@ void setupEspComms() {
 }
 
 void setupInterfaceSetup() {
+  Serial.println("Setting up interface setup");
+
   tft.init(170, 320);
   tft.setRotation(1);
   tft.setTextSize(2);
@@ -144,7 +236,6 @@ void setupInterfaceSetup() {
   tft.setCursor(0, 20);
   tft.print(macAddress);
 
-  WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
@@ -153,7 +244,8 @@ void setupInterfaceSetup() {
 }
 
 void setupReceiverSetup() {
-  WiFi.mode(WIFI_STA);
+  Serial.println("Setting up receiver setup");
+
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
@@ -173,6 +265,8 @@ void setupReceiverSetup() {
 
 // Execute any setup that is specific to the receiver device
 void setupReceiver() {
+  Serial.println("Setting up receiver");
+
   peerAddress = &sendAddress;
 
   onboardLED.begin();
@@ -189,6 +283,7 @@ void setupReceiver() {
 
 // Execute any setup that is specific to the interface device
 void setupInterface() {
+  Serial.println("Setting up interface");
   peerAddress = &recvAddress;
 
   tft.init(170, 320);
@@ -200,10 +295,19 @@ void setupInterface() {
 
   // Single Click event attachment
   buttonOne.attachClick(handleClick);
+
+  renderMenu();
+  renderColumnDivider();
 }
 
 void setup() {
   Serial.begin(115200);
+  delay(1000);
+  Serial.println("Starting setup");
+
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
 
   macAddress = WiFi.macAddress();
   Serial.print("MAC Address: ");
@@ -217,8 +321,6 @@ void setup() {
   if (isReceiverSetup) {
     setupReceiverSetup();
     // No return, we need the loop to run
-  } else if (isInterface || isReceiver) {
-    setupEspComms();
   }
 
   if (isReceiver) {
@@ -228,6 +330,8 @@ void setup() {
   if (isInterface) {
     setupInterface();
   }
+
+  setupEspComms();
 
   if (VERIFY_HARDWARE) {
     verifyHardwareConnections(tft, pixels);
