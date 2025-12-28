@@ -56,6 +56,7 @@ private:
         MenuItem* menu;
         int menuSize;
         int selectedIndex;
+        int scrollOffset = 0;
     };
 
     std::vector<MenuState> navigationStack;

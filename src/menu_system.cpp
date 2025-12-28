@@ -56,7 +56,7 @@ MenuController::MenuController(MenuItem* rootMenu, int rootMenuSize, TFT_eSPI& t
 
 void MenuController::navigateTo(MenuItem* menu, int size) {
     if (menu && size > 0) {
-        navigationStack.push_back({menu, size, 0});
+        navigationStack.push_back({menu, size, 0, 0}); // includes scrollOffset
         isDirty = true;
     }
 }
@@ -71,6 +71,16 @@ void MenuController::back() {
 void MenuController::nextItem() {
     MenuState& currentState = navigationStack.back();
     currentState.selectedIndex = (currentState.selectedIndex + 1) % currentState.menuSize;
+
+    // --- Scrolling Logic ---
+    const int VIEWPORT_SIZE = 4;
+    if (currentState.selectedIndex == 0) { // Wrapped around to the top
+        currentState.scrollOffset = 0;
+    } else if (currentState.selectedIndex >= currentState.scrollOffset + VIEWPORT_SIZE) {
+        // Scrolled past the bottom of the viewport
+        currentState.scrollOffset = currentState.selectedIndex - VIEWPORT_SIZE + 1;
+    }
+
     isDirty = true;
 }
 
@@ -104,7 +114,7 @@ void MenuController::render() {
 
     tft.startWrite();
 
-    tft.fillScreen(HEX_BG);
+    tft.fillScreen(TFT_BLACK);
     renderMenuItems();
     renderSidebar();
 
@@ -128,15 +138,25 @@ void MenuController::renderSidebar() {
 
 void MenuController::renderMenuItems() {
     MenuState& currentState = navigationStack.back();
+    const int VIEWPORT_SIZE = 4;
     int startX = 0;
     int startY = 5;
     int gap = 7;
     int width = 220;
 
-    for (int i = 0; i < currentState.menuSize; i++) {
+    // Determine the range of items to draw
+    int viewportEnd = currentState.scrollOffset + VIEWPORT_SIZE;
+    if (viewportEnd > currentState.menuSize) {
+        viewportEnd = currentState.menuSize;
+    }
+
+    for (int i = currentState.scrollOffset; i < viewportEnd; i++) {
         MenuItem& item = currentState.menu[i];
         bool isActive = (i == currentState.selectedIndex);
-        int currentY = startY + (i * (BTN_HEIGHT + gap));
+        
+        // Calculate Y position based on its index within the viewport
+        int viewportIndex = i - currentState.scrollOffset;
+        int currentY = startY + (viewportIndex * (BTN_HEIGHT + gap));
 
         uint16_t fillColor = isActive ? HEX_BORDER : HEX_MUTED;
         uint16_t textColor = isActive ? HEX_BG : HEX_TEXT_PRI;
