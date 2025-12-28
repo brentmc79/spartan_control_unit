@@ -59,6 +59,7 @@ private:
     };
 
     std::vector<MenuState> navigationStack;
+    bool isDirty = true;
 };
 
 // Make menu definitions accessible globally

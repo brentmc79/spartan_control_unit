@@ -57,18 +57,21 @@ MenuController::MenuController(MenuItem* rootMenu, int rootMenuSize, TFT_eSPI& t
 void MenuController::navigateTo(MenuItem* menu, int size) {
     if (menu && size > 0) {
         navigationStack.push_back({menu, size, 0});
+        isDirty = true;
     }
 }
 
 void MenuController::back() {
     if (navigationStack.size() > 1) {
         navigationStack.pop_back();
+        isDirty = true;
     }
 }
 
 void MenuController::nextItem() {
     MenuState& currentState = navigationStack.back();
     currentState.selectedIndex = (currentState.selectedIndex + 1) % currentState.menuSize;
+    isDirty = true;
 }
 
 void MenuController::selectItem() {
@@ -93,9 +96,12 @@ void MenuController::selectItem() {
             back();
             break;
     }
+    isDirty = true;
 }
 
 void MenuController::render() {
+    if (!isDirty) return;
+
     tft.startWrite();
 
     tft.fillScreen(HEX_BG);
@@ -103,6 +109,8 @@ void MenuController::render() {
     renderSidebar();
 
     tft.endWrite();
+
+    isDirty = false;
 }
 
 void MenuController::renderSidebar() {

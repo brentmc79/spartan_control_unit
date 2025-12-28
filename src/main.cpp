@@ -54,9 +54,6 @@ void loop() {
     if (menuController) {
         menuController->render();
     }
-    
-    // A small delay to prevent flickering and excessive redraws
-    delay(50); 
 }
 
 // --- Button Handlers ---
