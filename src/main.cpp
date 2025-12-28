@@ -8,14 +8,41 @@
 #include <Adafruit_NeoPixel.h>
 #include <WiFi.h>
 #include <esp_now.h>
+#include <OneButton.h>
+
+enum class DeviceMode : uint8_t {
+  INTERFACE,
+  INTERFACE_SETUP,
+  RECEIVER,
+  RECEIVER_SETUP,
+};
+
+#ifndef DEVICE_MODE
+// Provide a default value if the flag is not defined
+#define DEVICE_MODE DeviceMode::INTERFACE
+#endif
 
 const bool VERIFY_HARDWARE = false;
-const bool UI_MODULE = true;
+const bool isInterface = DEVICE_MODE == DeviceMode::INTERFACE;
+const bool isInterfaceSetup = DEVICE_MODE == DeviceMode::INTERFACE_SETUP;
+const bool isReceiver = DEVICE_MODE == DeviceMode::RECEIVER;
+const bool isReceiverSetup = DEVICE_MODE == DeviceMode::RECEIVER_SETUP;
 
 String macAddress;
 Adafruit_ST7789 tft = Adafruit_ST7789(LCD_CS, LCD_DC, LCD_RST);
 Adafruit_NeoPixel pixels(NUM_LEDS, LED_DATA, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel onboardLED(1, 48, NEO_GRB + NEO_KHZ800);
+
+OneButton buttonOne = OneButton(
+  BUTTON_1,  // Input pin for the button
+  true,      // Button is active LOW
+  true       // Enable internal pull-up resistor
+);
+OneButton buttonTwo = OneButton(
+  BUTTON_2,  // Input pin for the button
+  true,      // Button is active LOW
+  true       // Enable internal pull-up resistor
+);
 
 uint8_t sendAddress[] = {0x44, 0x17, 0x93, 0x6C, 0x62, 0x84}; // esp32 1.9 in tft lcd
 uint8_t recvAddress[] = {0x24, 0x58, 0x7C, 0xDB, 0x31, 0x3C}; // esp32 s3 super mini
@@ -34,6 +61,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
+bool pixelsOn = false;
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
@@ -44,25 +72,57 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   Serial.print("Value from Peer: ");
   Serial.println(incomingReadings.val);
 
-  uint8_t i = 0;
-  onboardLED.setBrightness(50);
-  while (i < 10) {
-    onboardLED.setPixelColor(0, onboardLED.Color(0, 0, 255));
-    onboardLED.show();
-    delay(250);
-    onboardLED.setPixelColor(0, onboardLED.Color(0, 0, 0));
-    onboardLED.show();
-    delay(250);
-    i++;
+  if (pixelsOn) {
+    pixels.clear();
+    pixelsOn = false;
+  } else {
+    pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+    pixels.setBrightness(255);
+    pixelsOn = true;
   }
+  pixels.show();
+
+  onboardLED.setBrightness(50);
+  onboardLED.setPixelColor(0, onboardLED.Color(0, 0, 255));
+  onboardLED.show();
+  delay(250);
   onboardLED.clear();
   onboardLED.show();
+}
+
+// Handler function for a single click:
+static void handleClick() {
+  Serial.println("Clicked!");
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setCursor(10, 10);
+  tft.print("Sending message...");
+  //strcpy(outgoingReadings.msg, "Hello");
+  outgoingReadings.msg[0] = 'H';
+  outgoingReadings.val = 123;
+  Serial.print("Sending message from ");
+  Serial.println(macAddress);
+  esp_err_t result = esp_now_send(recvAddress, (uint8_t *) &outgoingReadings, sizeof(outgoingReadings));
+  if (result == ESP_OK) {
+    Serial.println("Sent with success");
+  } else if (result == ESP_ERR_ESPNOW_NOT_INIT) {
+    Serial.println("ESPNOW not Init.");
+  } else if (result == ESP_ERR_ESPNOW_ARG) {
+    Serial.println("Invalid Argument");
+  } else if (result == ESP_ERR_ESPNOW_INTERNAL) {
+    Serial.println("Internal Error");
+  } else if (result == ESP_ERR_ESPNOW_NO_MEM) {
+    Serial.println("ESP_ERR_ESPNOW_NO_MEM");
+  } else if (result == ESP_ERR_ESPNOW_NOT_FOUND) {
+    Serial.println("Peer not found.");
+  } else {
+    Serial.println("Unknown error");
+  }
 }
 
 void setup() {
   Serial.begin(115200);
 
-  if(!UI_MODULE){
+  if(!isReceiver){
     onboardLED.begin();
     onboardLED.clear();
     //onboardLED.setPixelColor(0, onboardLED.Color(0, 0, 255));
@@ -79,17 +139,20 @@ void setup() {
   //pinMode(FAN_1_CTRL, OUTPUT);
   delay(100); // Allow pins to settle
 
-  //pixels.begin();
-  //pixels.clear();
-  //pixels.show();
+  pixels.begin();
+  pixels.clear();
+  pixels.show();
 
-  if(UI_MODULE){
+  if (isInterface) {
     tft.init(170, 320);
     tft.setRotation(1);
     tft.setTextSize(2);
     tft.setTextColor(ST77XX_WHITE);
     tft.fillScreen(ST77XX_BLACK);
     tft.setCursor(0, 0);
+ 
+    // Single Click event attachment
+    buttonOne.attachClick(handleClick);
   }
 
   if (VERIFY_HARDWARE) {
@@ -110,7 +173,7 @@ void setup() {
 
   // Register peer
   esp_now_peer_info_t peerInfo = {};
-  if (UI_MODULE)
+  if (isInterface)
     memcpy(peerInfo.peer_addr, recvAddress, 6);
   else
     memcpy(peerInfo.peer_addr, sendAddress, 6);
@@ -132,35 +195,14 @@ void setup() {
 }
 
 void loop() {
+  buttonOne.tick();
+  buttonTwo.tick();
+
   //tft.println("loop");
-  if(UI_MODULE){
-    tft.fillScreen(ST77XX_BLACK);
-    tft.setCursor(10, 10);
-    tft.print("Sending message...");
-    //strcpy(outgoingReadings.msg, "Hello");
-    outgoingReadings.msg[0] = 'H';
-    outgoingReadings.val = 123;
-    Serial.print("Sending message from ");
-    Serial.println(macAddress);
-    esp_err_t result = esp_now_send(recvAddress, (uint8_t *) &outgoingReadings, sizeof(outgoingReadings));
-    if (result == ESP_OK) {
-      Serial.println("Sent with success");
-    } else if (result == ESP_ERR_ESPNOW_NOT_INIT) {
-      Serial.println("ESPNOW not Init.");
-    } else if (result == ESP_ERR_ESPNOW_ARG) {
-      Serial.println("Invalid Argument");
-    } else if (result == ESP_ERR_ESPNOW_INTERNAL) {
-      Serial.println("Internal Error");
-    } else if (result == ESP_ERR_ESPNOW_NO_MEM) {
-      Serial.println("ESP_ERR_ESPNOW_NO_MEM");
-    } else if (result == ESP_ERR_ESPNOW_NOT_FOUND) {
-      Serial.println("Peer not found.");
-    } else {
-      Serial.println("Unknown error");
-    }
-    delay(1000);
-    tft.fillScreen(ST77XX_BLACK);
-    delay(8000);
+  if (isInterface) {
+    //delay(1000);
+    //tft.fillScreen(ST77XX_BLACK);
+    //delay(8000);
   } else {
     //Serial.print("Awaiting messages at ");
     //Serial.println(macAddress);
