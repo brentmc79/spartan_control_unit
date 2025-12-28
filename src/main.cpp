@@ -185,12 +185,12 @@ void renderMenu() {
 }
 
 void renderColumnDivider() {
-  tft.drawLine(235, 0, 235, 170, HEX_MUTED);
-  tft.drawLine(236, 0, 236, 170, HEX_BORDER);
-  tft.drawLine(237, 0, 237, 170, HEX_MUTED);
-  tft.drawLine(238, 0, 238, 170, HEX_MUTED);
-  tft.drawLine(239, 0, 239, 170, HEX_BORDER);
-  tft.drawLine(240, 0, 240, 170, HEX_MUTED);
+  tft.drawLine(235, 0, 235, 165, HEX_MUTED);
+  tft.drawLine(236, 0, 236, 165, HEX_BORDER);
+  tft.drawLine(237, 0, 237, 165, HEX_MUTED);
+  tft.drawLine(238, 0, 238, 165, HEX_MUTED);
+  tft.drawLine(239, 5, 239, 170, HEX_BORDER);
+  tft.drawLine(240, 5, 240, 170, HEX_MUTED);
 }
 
 void setupEspComms() {
