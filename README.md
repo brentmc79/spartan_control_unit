@@ -92,6 +92,7 @@ The devices are now paired and ready for use.
 ### Pinout
 
 ![Pinout Diagram](docs/pinout.png)
+![ESP32-S3 SuperMini Pinout Diagram](docs/esp32_s3_super_mini_pinout.jpg)
 
 ### Wiring
 
