@@ -4,11 +4,13 @@
 #include <vector>
 #include <functional>
 
-// Forward-declare the main controller class
+// Forward-declarations
 class MenuController;
+struct MenuItem;
 
-// Define a type for menu item actions
+// Define callback types
 using ActionCallback = std::function<void(MenuController*)>;
+using UpdateCallback = std::function<void(MenuItem*)>;
 
 // Defines the different behaviors a menu item can have.
 enum class MenuItemType {
@@ -30,6 +32,7 @@ struct MenuItem {
     const char** options;
     int numOptions;
     ActionCallback action;
+    UpdateCallback onUpdate;
 
     // State for TOGGLE and CYCLE items
     int currentOption;

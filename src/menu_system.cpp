@@ -1,8 +1,48 @@
 #include "menu_system.h"
 #include "theme.h"
+#include "state.h"
+#include "communication.h"
+
+// --- Callback Functions ---
+
+void onVisorToggle(MenuItem* item) {
+    appState.visorOn = item->currentOption;
+    sendStateUpdate();
+}
+
+void onVisorModeChange(MenuItem* item) {
+    appState.visorMode = (VisorMode)item->currentOption;
+    sendStateUpdate();
+}
+
+void onVisorColorChange(MenuItem* item) {
+    appState.visorColor = (VisorColor)item->currentOption;
+    sendStateUpdate();
+}
+
+void onVisorBrightnessChange(MenuItem* item) {
+    appState.visorBrightness = item->currentOption + 1; // Options are "1", "2", etc.
+    sendStateUpdate();
+}
+
+void onThermalsToggle(MenuItem* item) {
+    appState.thermalsOn = item->currentOption;
+    sendStateUpdate();
+}
+
+void onHudChange(MenuItem* item) {
+    appState.hudStyle = (HudStyle)item->currentOption;
+    // This is a local-only change, no need to send ESP-NOW update
+}
+
+void onBootSeqChange(MenuItem* item) {
+    appState.bootSequence = (BootSequence)item->currentOption;
+    // Also a local-only change
+}
+
 
 // --- Menu Definitions ---
-// Initializer order: {label, type, subMenu, subMenuSize, options, numOptions, action, currentOption}
+// Initializer order: {label, type, subMenu, subMenuSize, options, numOptions, action, onUpdate, currentOption}
 
 // --- VISOR SUBMENU ---
 const char* visorOnOffOptions[] = {"Off", "On"};
@@ -10,40 +50,40 @@ const char* visorModeOptions[] = {"Solid", "Flashing", "Pulsing"};
 const char* visorColorOptions[] = {"White", "Blue", "Green", "Yellow", "Orange", "Red"};
 const char* visorBrightnessOptions[] = {"1", "2", "3", "4"};
 MenuItem visorMenuItems[] = {
-    {"On/Off", MenuItemType::TOGGLE, nullptr, 0, visorOnOffOptions, 2, nullptr, 0},
-    {"Mode", MenuItemType::CYCLE, nullptr, 0, visorModeOptions, 3, nullptr, 0},
-    {"Color", MenuItemType::CYCLE, nullptr, 0, visorColorOptions, 6, nullptr, 0},
-    {"Brightness", MenuItemType::CYCLE, nullptr, 0, visorBrightnessOptions, 4, nullptr, 0},
-    {"<- Back", MenuItemType::BACK, nullptr, 0, nullptr, 0, nullptr, 0}
+    {"On/Off",     MenuItemType::TOGGLE, nullptr, 0, visorOnOffOptions,      2, nullptr, onVisorToggle,          0},
+    {"Mode",       MenuItemType::CYCLE,  nullptr, 0, visorModeOptions,       3, nullptr, onVisorModeChange,      0},
+    {"Color",      MenuItemType::CYCLE,  nullptr, 0, visorColorOptions,      6, nullptr, onVisorColorChange,     0},
+    {"Brightness", MenuItemType::CYCLE,  nullptr, 0, visorBrightnessOptions, 4, nullptr, onVisorBrightnessChange,0},
+    {"<- Back",    MenuItemType::BACK,   nullptr, 0, nullptr,                0, nullptr, nullptr,                0}
 };
 
 // --- THERMALS SUBMENU ---
 const char* thermalsOnOffOptions[] = {"Off", "On"};
 MenuItem thermalsMenuItems[] = {
-    {"On/Off", MenuItemType::TOGGLE, nullptr, 0, thermalsOnOffOptions, 2, nullptr, 0},
-    {"<- Back", MenuItemType::BACK, nullptr, 0, nullptr, 0, nullptr, 0}
+    {"On/Off",   MenuItemType::TOGGLE, nullptr, 0, thermalsOnOffOptions, 2, nullptr, onThermalsToggle, 0},
+    {"<- Back",  MenuItemType::BACK,   nullptr, 0, nullptr,              0, nullptr, nullptr,          0}
 };
 
 // --- HUD SUBMENU ---
 const char* hudOptions[] = {"Biometric", "Radar", "Matrix"};
 MenuItem hudMenuItems[] = {
-    {"Display", MenuItemType::CYCLE, nullptr, 0, hudOptions, 3, nullptr, 0},
-    {"<- Back", MenuItemType::BACK, nullptr, 0, nullptr, 0, nullptr, 0}
+    {"Display",  MenuItemType::CYCLE,  nullptr, 0, hudOptions, 3, nullptr, onHudChange, 0},
+    {"<- Back",  MenuItemType::BACK,   nullptr, 0, nullptr,    0, nullptr, nullptr,     0}
 };
 
 // --- SETTINGS SUBMENU ---
 const char* bootSeqOptions[] = {"UNSC Logo", "Progress Bar"};
 MenuItem settingsMenuItems[] = {
-    {"Boot Sequence", MenuItemType::CYCLE, nullptr, 0, bootSeqOptions, 2, nullptr, 0},
-    {"<- Back", MenuItemType::BACK, nullptr, 0, nullptr, 0, nullptr, 0}
+    {"Boot Sequence", MenuItemType::CYCLE,  nullptr, 0, bootSeqOptions, 2, nullptr, onBootSeqChange, 0},
+    {"<- Back",       MenuItemType::BACK,   nullptr, 0, nullptr,        0, nullptr, nullptr,         0}
 };
 
 // --- MAIN MENU ---
 MenuItem mainMenuItems[] = {
-    {"VISOR",    MenuItemType::SUBMENU, visorMenuItems,    sizeof(visorMenuItems) / sizeof(MenuItem),    nullptr, 0, nullptr, 0},
-    {"THERMALS", MenuItemType::SUBMENU, thermalsMenuItems, sizeof(thermalsMenuItems) / sizeof(MenuItem), nullptr, 0, nullptr, 0},
-    {"HUD",      MenuItemType::SUBMENU, hudMenuItems,      sizeof(hudMenuItems) / sizeof(MenuItem),      nullptr, 0, nullptr, 0},
-    {"SETTINGS", MenuItemType::SUBMENU, settingsMenuItems, sizeof(settingsMenuItems) / sizeof(MenuItem), nullptr, 0, nullptr, 0}
+    {"VISOR",    MenuItemType::SUBMENU, visorMenuItems,    sizeof(visorMenuItems) / sizeof(MenuItem),    nullptr, 0, nullptr, nullptr, 0},
+    {"THERMALS", MenuItemType::SUBMENU, thermalsMenuItems, sizeof(thermalsMenuItems) / sizeof(MenuItem), nullptr, 0, nullptr, nullptr, 0},
+    {"HUD",      MenuItemType::SUBMENU, hudMenuItems,      sizeof(hudMenuItems) / sizeof(MenuItem),      nullptr, 0, nullptr, nullptr, 0},
+    {"SETTINGS", MenuItemType::SUBMENU, settingsMenuItems, sizeof(settingsMenuItems) / sizeof(MenuItem), nullptr, 0, nullptr, nullptr, 0}
 };
 const int mainMenuItemCount = sizeof(mainMenuItems) / sizeof(MenuItem);
 
@@ -56,7 +96,7 @@ MenuController::MenuController(MenuItem* rootMenu, int rootMenuSize, TFT_eSPI& t
 
 void MenuController::navigateTo(MenuItem* menu, int size) {
     if (menu && size > 0) {
-        navigationStack.push_back({menu, size, 0, 0}); // includes scrollOffset
+        navigationStack.push_back({menu, size, 0, 0});
         isDirty = true;
     }
 }
@@ -72,12 +112,10 @@ void MenuController::nextItem() {
     MenuState& currentState = navigationStack.back();
     currentState.selectedIndex = (currentState.selectedIndex + 1) % currentState.menuSize;
 
-    // --- Scrolling Logic ---
     const int VIEWPORT_SIZE = 4;
-    if (currentState.selectedIndex == 0) { // Wrapped around to the top
+    if (currentState.selectedIndex == 0) {
         currentState.scrollOffset = 0;
     } else if (currentState.selectedIndex >= currentState.scrollOffset + VIEWPORT_SIZE) {
-        // Scrolled past the bottom of the viewport
         currentState.scrollOffset = currentState.selectedIndex - VIEWPORT_SIZE + 1;
     }
 
@@ -95,7 +133,9 @@ void MenuController::selectItem() {
         case MenuItemType::TOGGLE:
         case MenuItemType::CYCLE:
             selected.currentOption = (selected.currentOption + 1) % selected.numOptions;
-            // Here you would trigger the ESP-NOW update
+            if (selected.onUpdate) {
+                selected.onUpdate(&selected);
+            }
             break;
         case MenuItemType::ACTION:
             if (selected.action) {
@@ -114,7 +154,7 @@ void MenuController::render() {
 
     tft.startWrite();
 
-    tft.fillScreen(TFT_BLACK);
+    tft.fillScreen(HEX_BG);
     renderMenuItems();
     renderSidebar();
 
@@ -144,7 +184,6 @@ void MenuController::renderMenuItems() {
     int gap = 7;
     int width = 220;
 
-    // Determine the range of items to draw
     int viewportEnd = currentState.scrollOffset + VIEWPORT_SIZE;
     if (viewportEnd > currentState.menuSize) {
         viewportEnd = currentState.menuSize;
@@ -154,7 +193,6 @@ void MenuController::renderMenuItems() {
         MenuItem& item = currentState.menu[i];
         bool isActive = (i == currentState.selectedIndex);
         
-        // Calculate Y position based on its index within the viewport
         int viewportIndex = i - currentState.scrollOffset;
         int currentY = startY + (viewportIndex * (BTN_HEIGHT + gap));
 

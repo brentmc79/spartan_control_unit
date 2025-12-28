@@ -3,9 +3,8 @@
 #include "pins.h"
 #include "theme.h"
 #include "menu_system.h"
+#include "communication.h"
 #include <Adafruit_NeoPixel.h>
-#include <WiFi.h>
-#include <esp_now.h>
 #include <OneButton.h>
 
 // --- Globals ---
@@ -14,16 +13,11 @@ Adafruit_NeoPixel pixels(NUM_LEDS, LED_DATA, NEO_GRB + NEO_KHZ800);
 OneButton buttonOne(BUTTON_1, true, true);
 OneButton buttonTwo(BUTTON_2, true, true);
 
-// Defined in menu_system.cpp
-extern MenuItem mainMenuItems[];
-extern const int mainMenuItemCount;
-
 MenuController* menuController = nullptr;
 
 // --- Forward Declarations ---
 void handleNext();
 void handleSelect();
-
 
 void setupInterface() {
     Serial.println("Setting up interface");
@@ -31,7 +25,11 @@ void setupInterface() {
     tft.begin();
     tft.setRotation(3);
     
+    // Initialize the menu system
     menuController = new MenuController(mainMenuItems, mainMenuItemCount, tft);
+
+    // Initialize ESP-NOW communication
+    initCommunication();
 
     // Attach button handlers
     buttonOne.attachClick(handleNext);
@@ -41,10 +39,12 @@ void setupInterface() {
 void setup() {
     Serial.begin(115200);
     delay(1000);
-    Serial.println("Starting setup");
+    Serial.println("Starting SpartanOS Interface...");
 
-    // For now, we are only focusing on the interface device
     setupInterface();
+    
+    // Send the initial state to the receiver on boot
+    sendStateUpdate();
 }
 
 void loop() {
