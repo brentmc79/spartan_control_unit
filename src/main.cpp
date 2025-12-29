@@ -48,7 +48,6 @@ extern const int mainMenuItemCount;
 uint8_t sendAddress[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // Interface MAC (set by setup)
 uint8_t recvAddress[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // Receiver MAC (set by setup)
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-uint8_t (*peerAddress)[6] = NULL;
 
 String macAddress; // This will hold the MAC address string
 
@@ -87,12 +86,9 @@ void setupInterface() {
     
     tft.begin();
     tft.setRotation(3);
-    
+
     // Initialize the menu system
     menuController = new MenuController(mainMenuItems, mainMenuItemCount, tft);
-
-    // Initialize ESP-NOW communication
-    initCommunication();
 
     // Attach button handlers
     buttonOne.attachClick(handleNext);
@@ -178,12 +174,6 @@ void setupEspComms() {
     }
   }
 
-  if (isInterface) {
-    peerAddress = &recvAddress;
-  } else {
-    peerAddress = &sendAddress;
-  }
-
   // Init ESP-NOW
   Serial.println("Initializing ESP-NOW");
   if (esp_now_init() != ESP_OK) {
@@ -196,10 +186,14 @@ void setupEspComms() {
   esp_now_register_send_cb(esp_now_send_cb_t(OnDataSent));
   esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 
-  // Register peer
+  // Register peer - Interface sends to Receiver, Receiver sends to Interface
   Serial.println("Registering peer");
   esp_now_peer_info_t peerInfo = {};
-  memcpy(peerInfo.peer_addr, peerAddress, 6);
+  if (isInterface) {
+    memcpy(peerInfo.peer_addr, recvAddress, 6);
+  } else {
+    memcpy(peerInfo.peer_addr, sendAddress, 6);
+  }
   peerInfo.channel = 0;  
   peerInfo.encrypt = false;
   

@@ -20,8 +20,6 @@ struct SetupPayload {
     char macAddress[18]; // MAC addresses are 17 characters long + null terminator
 };
 
-// Initializes the ESP-NOW communication interface
-void initCommunication();
-
-// Sends the current application state to the receiver device
+// Sends the current application state to the receiver device.
+// ESP-NOW must be initialized via setupEspComms() in main.cpp before calling this.
 void sendStateUpdate();
