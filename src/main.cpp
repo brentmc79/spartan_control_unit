@@ -10,6 +10,7 @@
 #include <esp_now.h>
 #include <OneButton.h>
 #include <Preferences.h>
+#include <memory>
 
 enum class DeviceMode : uint8_t {
   INTERFACE,
@@ -37,7 +38,7 @@ OneButton buttonTwo(BUTTON_2, true, true);
 
 Preferences preferences;
 
-MenuController* menuController = nullptr;
+std::unique_ptr<MenuController> menuController;
 
 // Defined in menu_system.cpp
 extern MenuItem mainMenuItems[];
@@ -88,7 +89,7 @@ void setupInterface() {
     tft.setRotation(3);
 
     // Initialize the menu system
-    menuController = new MenuController(mainMenuItems, mainMenuItemCount, tft);
+    menuController = std::make_unique<MenuController>(mainMenuItems, mainMenuItemCount, tft);
 
     // Attach button handlers
     buttonOne.attachClick(handleNext);

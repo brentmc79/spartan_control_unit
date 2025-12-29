@@ -8,8 +8,9 @@
 class MenuController;
 struct MenuItem;
 
-// Define callback types
+// Callback invoked when a menu item is selected (receives controller for navigation)
 using ActionCallback = std::function<void(MenuController*)>;
+// Callback invoked when a menu item's value changes (receives item for state access)
 using UpdateCallback = std::function<void(MenuItem*)>;
 
 // Defines the different behaviors a menu item can have.
@@ -39,12 +40,16 @@ struct MenuItem {
 };
 
 // Manages the state, navigation, and rendering of the entire menu system.
+// Handles hierarchical menus with support for submenus, toggles, and cyclic options.
 class MenuController {
 public:
     MenuController(MenuItem* rootMenu, int rootMenuSize, TFT_eSPI& tft);
 
+    // Redraws the menu UI (only when dirty flag is set)
     void render();
+    // Moves selection to next menu item, wrapping at end
     void nextItem();
+    // Activates the selected item (toggle, cycle, navigate, or execute action)
     void selectItem();
 
 private:
@@ -66,9 +71,9 @@ private:
     bool isDirty = true;
 };
 
-// Make menu definitions accessible globally
+// Root menu definition
 extern MenuItem mainMenuItems[];
 extern const int mainMenuItemCount;
 
-// Updates the menu items to reflect the current AppState
+// Synchronizes menu item states with appState (call after loading saved state)
 void updateMenuFromState();

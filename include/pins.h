@@ -1,5 +1,4 @@
-#ifndef PINS_H
-#define PINS_H
+#pragma once
 
 #define LCD_MOSI 23 // ESP32 D23
 #define LCD_SCLK 18 // ESP32 D18
@@ -16,6 +15,3 @@
 #define FAN_2_CTRL 27 // GPIO for Fan 2 control
 
 #define NUM_LEDS 2
-
-
-#endif // PINS_H

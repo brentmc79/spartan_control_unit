@@ -1,5 +1,4 @@
-#ifndef HALO_THEME_H
-#define HALO_THEME_H
+#pragma once
 
 #include <Arduino.h>
 
@@ -27,5 +26,3 @@ inline uint16_t toRGB565(RGBColor color) {
 #define HEX_BORDER   0x061A  // Electric Cyan
 #define HEX_TEXT_PRI 0xFFFF  // White
 #define HEX_MUTED    0x0145  // Dark Green
-
-#endif
