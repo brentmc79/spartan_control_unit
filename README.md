@@ -136,8 +136,8 @@ For each button, a 10k Ohm pull-down resistor is required.
 
 #### LEDs (Addressable)
 
-*   **Data Pin:** Connect to `GPIO25` on the ESP32.
-    *   **Note:** Since the addressable LEDs are 5V and the ESP32's GPIOs are 3.3V, a logic level shifter is recommended between `GPIO25` and the LED data pin to ensure reliable data transmission.
+*   **Data Pin:** Connect to `GPIO8` on the ESP32-S3.
+    *   **Note:** Since the addressable LEDs are 5V and the ESP32's GPIOs are 3.3V, a logic level shifter is recommended between `GPIO8` and the LED data pin to ensure reliable data transmission.
 *   **Power:** Connect the LED strip's 5V pin to an external 5V power supply.
 *   **Ground:** Connect the LED strip's GND pin to the same ground as the ESP32 and the 5V power supply.
 
@@ -145,12 +145,12 @@ For each button, a 10k Ohm pull-down resistor is required.
 
 To control the 5V fans, you'll need a transistor (like a MOSFET) for each fan, as the ESP32's GPIO pins cannot provide enough power.
 
-*   **Fan 1 Control:** `GPIO26`
+*   **Fan 1 Control:** `GPIO7`
 *   **Fan 2 Control:** `GPIO27`
 
 ##### Wiring with N-Channel MOSFETs (for each fan):
 
-1.  Connect the **Gate** of the MOSFET to the GPIO pin (e.g., `GPIO26`).
+1.  Connect the **Gate** of the MOSFET to the GPIO pin (e.g., `GPIO7`).
 2.  Connect the **Source** of the MOSFET to Ground (GND).
 3.  Connect the **Drain** of the MOSFET to the negative (black) wire of the fan.
 4.  Connect the positive (red) wire of the fan to the 5V power supply.
