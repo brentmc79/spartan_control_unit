@@ -27,7 +27,7 @@ This project is designed to run on two separate ESP32 devices that communicate w
 
 *   **MCU:** ESP32-S3 Super Mini
 *   **Peripherals:** Addressable LEDs and a 5V DC fan (controlled via a transistor)
-*   **Role:** This device receives commands from the Interface Device to control the LEDs and fan.
+*   **Role:** This device receives commands from the Interface Device to control the LEDs and fan. It also blinks its onboard LED when a message is received.
 
 ## Hardware
 

@@ -29,6 +29,7 @@ const bool isReceiverSetup = DEVICE_MODE == DeviceMode::RECEIVER_SETUP;
 // --- Globals ---
 TFT_eSPI tft = TFT_eSPI();
 Adafruit_NeoPixel pixels(NUM_LEDS, LED_DATA, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel onboardLED(1, 48, NEO_GRB + NEO_KHZ800);
 OneButton buttonOne(BUTTON_1, true, true);
 OneButton buttonTwo(BUTTON_2, true, true);
 
@@ -86,6 +87,10 @@ void setupReceiver() {
   pixels.begin();
   pixels.clear();
   pixels.show();
+
+  onboardLED.begin();
+  onboardLED.clear();
+  onboardLED.show();
 
   pinMode(FAN_1_CTRL, OUTPUT);
   delay(100); // Allow pins to settle
@@ -258,5 +263,12 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     tft.print("Receiver MAC:");
     tft.setCursor(0, 100);
     tft.print(incomingReadings.msg);
+  } else if (isReceiver) { // Blink onboard LED on receiver for incoming message
+    onboardLED.setPixelColor(0, onboardLED.Color(0, 0, 255)); // Blue color
+    onboardLED.setBrightness(10);
+    onboardLED.show();
+    delay(50);
+    onboardLED.clear();
+    onboardLED.show();
   }
 }
