@@ -51,6 +51,13 @@ uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 uint8_t (*peerAddress)[6] = NULL;
 
 String macAddress; // This will hold the MAC address string
+
+// Receiver watchdog - tracks last message time to detect connection loss
+unsigned long lastMessageTime = 0;
+
+// Interface heartbeat - tracks last time state was sent to receiver
+unsigned long lastHeartbeatTime = 0;
+
 // --- Forward Declarations ---
 void handleNext();
 void handleSelect();
@@ -72,6 +79,7 @@ void pulseLeds();
 void flashLeds();
 void strobeLeds();
 uint32_t getVisorColorValue(VisorColor color);
+void resetToSafeState();
 
 
 void setupInterface() {
@@ -268,6 +276,23 @@ void loop() {
         menuController->render();
     }
 
+    // Interface heartbeat - periodically send state to keep receiver's watchdog happy
+    if (isInterface) {
+        if (millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL_MS) {
+            lastHeartbeatTime = millis();
+            sendStateUpdate();
+        }
+    }
+
+    // Receiver watchdog - reset to safe state if no messages received
+    if (isReceiver && lastMessageTime > 0) {
+        if (millis() - lastMessageTime > RECEIVER_TIMEOUT_MS) {
+            if (appState.visorOn || appState.thermalsOn) {
+                resetToSafeState();
+            }
+        }
+    }
+
     if (isReceiver && appState.visorOn && appState.visorMode == VisorMode::PULSING) {
         pulseLeds();
     } else if (isReceiver && appState.visorOn && appState.visorMode == VisorMode::FLASHING) {
@@ -311,6 +336,9 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       appState.visorBrightness = payload.visorBrightness;
       appState.thermalsOn = payload.thermalsOn;
       updateHardwareState(payload);
+
+      // Reset watchdog timer
+      lastMessageTime = millis();
 
       // Blink onboard LED on receiver for incoming message
       onboardLED.setPixelColor(0, onboardLED.Color(0, 0, 255)); // Blue color
@@ -389,6 +417,56 @@ void updateHardwareState(const CommandPayload& payload) {
   digitalWrite(FAN_1_CTRL, payload.thermalsOn ? HIGH : LOW);
   // Assuming FAN_2_CTRL also exists and follows thermalsOn
   // digitalWrite(FAN_2_CTRL, payload.thermalsOn ? HIGH : LOW);
+}
+
+// Resets hardware to safe state when connection is lost
+void resetToSafeState() {
+  Serial.println("WARNING: Connection timeout - resetting to safe state");
+
+  // Turn off fans immediately (safety first)
+  digitalWrite(FAN_1_CTRL, LOW);
+
+  // Update app state to reflect safe state
+  appState.visorOn = false;
+  appState.thermalsOn = false;
+
+  // Set onboard LED red to indicate timeout
+  onboardLED.setPixelColor(0, onboardLED.Color(255, 0, 0));
+  onboardLED.setBrightness(10);
+  onboardLED.show();
+
+  // Phase 1: Flash bright red for 5 seconds
+  uint32_t red = pixels.Color(255, 0, 0);
+  unsigned long flashStart = millis();
+  bool ledOn = true;
+
+  pixels.setBrightness(MAX_BRIGHTNESS);
+  while (millis() - flashStart < SHUTDOWN_FLASH_DURATION_MS) {
+    if (ledOn) {
+      pixels.fill(red, 0, NUM_LEDS);
+    } else {
+      pixels.clear();
+    }
+    pixels.show();
+    ledOn = !ledOn;
+    delay(SHUTDOWN_FLASH_INTERVAL_MS);
+  }
+
+  // Phase 2: Fade from bright red to off over 5 seconds
+  unsigned long fadeStart = millis();
+  pixels.fill(red, 0, NUM_LEDS);
+
+  while (millis() - fadeStart < SHUTDOWN_FADE_DURATION_MS) {
+    float progress = (float)(millis() - fadeStart) / SHUTDOWN_FADE_DURATION_MS;
+    uint8_t brightness = MAX_BRIGHTNESS * (1.0 - progress);
+    pixels.setBrightness(brightness);
+    pixels.show();
+    delay(20);  // Smooth fade with ~50 updates per second
+  }
+
+  // Final state: LEDs off
+  pixels.clear();
+  pixels.show();
 }
 
 void pulseLeds() {

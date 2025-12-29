@@ -14,6 +14,16 @@
 #define FLASH_INTERVAL_MS 500
 #define STROBE_INTERVAL_MS 100
 
+// Communication timing (milliseconds)
+// Heartbeat keeps receiver's watchdog happy; timeout triggers safety shutdown
+#define HEARTBEAT_INTERVAL_MS 5000
+#define RECEIVER_TIMEOUT_MS 10000
+
+// Safety shutdown animation timing (milliseconds)
+#define SHUTDOWN_FLASH_DURATION_MS 5000
+#define SHUTDOWN_FLASH_INTERVAL_MS 200
+#define SHUTDOWN_FADE_DURATION_MS 5000
+
 // Menu button layout
 #define MENU_BTN_HEIGHT 35
 #define MENU_BTN_RADIUS 6
