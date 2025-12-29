@@ -70,6 +70,7 @@ void updateMenuFromState(); // Defined in menu_system.cpp
 void pulseLeds();
 void flashLeds();
 void strobeLeds();
+uint32_t getVisorColorValue(VisorColor color);
 
 
 void setupInterface() {
@@ -356,20 +357,24 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   }
 }
 
+// Converts a VisorColor enum to its RGB color value
+uint32_t getVisorColorValue(VisorColor color) {
+    switch (color) {
+        case VisorColor::WHITE:  return pixels.Color(255, 255, 255);
+        case VisorColor::BLUE:   return pixels.Color(0, 0, 255);
+        case VisorColor::GREEN:  return pixels.Color(0, 255, 0);
+        case VisorColor::YELLOW: return pixels.Color(255, 255, 0);
+        case VisorColor::ORANGE: return pixels.Color(255, 128, 0);
+        case VisorColor::RED:    return pixels.Color(255, 0, 0);
+        default:                 return pixels.Color(0, 0, 0);
+    }
+}
+
 // Function to update the hardware state based on the CommandPayload
 void updateHardwareState(const CommandPayload& payload) {
   // Update LEDs
   if (payload.visorOn) {
-    uint32_t color;
-    switch (payload.visorColor) {
-      case VisorColor::WHITE: color = pixels.Color(255, 255, 255); break;
-      case VisorColor::BLUE:  color = pixels.Color(0, 0, 255); break;
-      case VisorColor::GREEN: color = pixels.Color(0, 255, 0); break;
-      case VisorColor::YELLOW: color = pixels.Color(255, 255, 0); break;
-      case VisorColor::ORANGE: color = pixels.Color(255, 128, 0); break;
-      case VisorColor::RED:   color = pixels.Color(255, 0, 0); break;
-      default: color = pixels.Color(0, 0, 0); break; // Off
-    }
+    uint32_t color = getVisorColorValue(payload.visorColor);
     if (payload.visorMode != VisorMode::PULSING) {
       pixels.setBrightness(payload.visorBrightness * 63); // Map 1-4 to 0-255
     }
@@ -389,18 +394,8 @@ void pulseLeds() {
     // Non-blocking pulsing effect
     // Uses a sine wave to smoothly ramp the brightness up and down
     float brightness = (sin(millis() / 1000.0 * PI) + 1) / 2.0;
-    
-    uint32_t color;
-    switch (appState.visorColor) {
-        case VisorColor::WHITE:  color = pixels.Color(255, 255, 255); break;
-        case VisorColor::BLUE:   color = pixels.Color(0, 0, 255);   break;
-        case VisorColor::GREEN:  color = pixels.Color(0, 255, 0);   break;
-        case VisorColor::YELLOW: color = pixels.Color(255, 255, 0); break;
-        case VisorColor::ORANGE: color = pixels.Color(255, 128, 0); break;
-        case VisorColor::RED:    color = pixels.Color(255, 0, 0);   break;
-        default:                 color = pixels.Color(0, 0, 0);     break; // Off
-    }
 
+    uint32_t color = getVisorColorValue(appState.visorColor);
     pixels.fill(color, 0, NUM_LEDS);
     pixels.setBrightness(brightness * (appState.visorBrightness * 63));
     Serial.println("Brightness: " + String(brightness * (appState.visorBrightness * 63)));
@@ -422,16 +417,7 @@ void flashLeds() {
             pixels.setBrightness(appState.visorBrightness * 63);
         }
 
-        uint32_t color;
-        switch (appState.visorColor) {
-            case VisorColor::WHITE:  color = pixels.Color(255, 255, 255); break;
-            case VisorColor::BLUE:   color = pixels.Color(0, 0, 255);   break;
-            case VisorColor::GREEN:  color = pixels.Color(0, 255, 0);   break;
-            case VisorColor::YELLOW: color = pixels.Color(255, 255, 0); break;
-            case VisorColor::ORANGE: color = pixels.Color(255, 128, 0); break;
-            case VisorColor::RED:    color = pixels.Color(255, 0, 0);   break;
-            default:                 color = pixels.Color(0, 0, 0);     break; // Off
-        }
+        uint32_t color = getVisorColorValue(appState.visorColor);
         pixels.fill(color, 0, NUM_LEDS);
         pixels.show();
     }
@@ -452,16 +438,7 @@ void strobeLeds() {
             pixels.setBrightness(appState.visorBrightness * 63);
         }
 
-        uint32_t color;
-        switch (appState.visorColor) {
-            case VisorColor::WHITE:  color = pixels.Color(255, 255, 255); break;
-            case VisorColor::BLUE:   color = pixels.Color(0, 0, 255);   break;
-            case VisorColor::GREEN:  color = pixels.Color(0, 255, 0);   break;
-            case VisorColor::YELLOW: color = pixels.Color(255, 255, 0); break;
-            case VisorColor::ORANGE: color = pixels.Color(255, 128, 0); break;
-            case VisorColor::RED:    color = pixels.Color(255, 0, 0);   break;
-            default:                 color = pixels.Color(0, 0, 0);     break; // Off
-        }
+        uint32_t color = getVisorColorValue(appState.visorColor);
         pixels.fill(color, 0, NUM_LEDS);
         pixels.show();
     }
