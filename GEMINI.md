@@ -95,7 +95,7 @@ This project is built and managed using PlatformIO.
 
 ### Compiling for a specific device
 
-The `platformio.ini` file has two environments defined for the operational firmware, and two for the setup firmware:
+The `platformio.ini` file has four environments defined for building:
 
 *   `esp32dev`: Builds the firmware for the **Interface Device**. It sets the `DEVICE_MODE` build flag to `DeviceMode::INTERFACE`.
 *   `esp32-s3-supermini`: Builds the firmware for the **Receiver Device**. It sets the `DEVICE_MODE` build flag to `DeviceMode::RECEIVER`.
@@ -108,6 +108,7 @@ To build for a specific device, you can use the `-e` flag with the PlatformIO CL
 *   Build for Receiver Device (operational): `pio run -e esp32-s3-supermini`
 *   Build for Interface Device (setup): `pio run -e esp32dev-interface-setup`
 *   Build for Receiver Device (setup): `pio run -e esp32-s3-supermini-receiver-setup`
+
 
 ## First-Time Setup: Device Pairing
 
