@@ -4,6 +4,12 @@
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 170
 
+// LED brightness settings
+// Brightness levels 1-4 map to values 63-252 (step size = 255/4)
+#define BRIGHTNESS_LEVELS 4
+#define MAX_BRIGHTNESS 255
+#define BRIGHTNESS_STEP (MAX_BRIGHTNESS / BRIGHTNESS_LEVELS)
+
 // Menu button layout
 #define MENU_BTN_HEIGHT 35
 #define MENU_BTN_RADIUS 6

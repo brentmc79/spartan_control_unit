@@ -2,6 +2,7 @@
 #include <TFT_eSPI.h>
 #include "pins.h"
 #include "theme.h"
+#include "layout.h"
 #include "menu_system.h"
 #include "communication.h"
 #include <Adafruit_NeoPixel.h>
@@ -376,7 +377,7 @@ void updateHardwareState(const CommandPayload& payload) {
   if (payload.visorOn) {
     uint32_t color = getVisorColorValue(payload.visorColor);
     if (payload.visorMode != VisorMode::PULSING) {
-      pixels.setBrightness(payload.visorBrightness * 63); // Map 1-4 to 0-255
+      pixels.setBrightness(payload.visorBrightness * BRIGHTNESS_STEP);
     }
     pixels.fill(color, 0, NUM_LEDS);
   } else {
@@ -397,8 +398,8 @@ void pulseLeds() {
 
     uint32_t color = getVisorColorValue(appState.visorColor);
     pixels.fill(color, 0, NUM_LEDS);
-    pixels.setBrightness(brightness * (appState.visorBrightness * 63));
-    Serial.println("Brightness: " + String(brightness * (appState.visorBrightness * 63)));
+    pixels.setBrightness(brightness * (appState.visorBrightness * BRIGHTNESS_STEP));
+    Serial.println("Brightness: " + String(brightness * (appState.visorBrightness * BRIGHTNESS_STEP)));
     pixels.show();
 }
 
@@ -414,7 +415,7 @@ void flashLeds() {
         if (pixels.getBrightness() > 0) {
             pixels.setBrightness(0);
         } else {
-            pixels.setBrightness(appState.visorBrightness * 63);
+            pixels.setBrightness(appState.visorBrightness * BRIGHTNESS_STEP);
         }
 
         uint32_t color = getVisorColorValue(appState.visorColor);
@@ -435,7 +436,7 @@ void strobeLeds() {
         if (pixels.getBrightness() > 0) {
             pixels.setBrightness(0);
         } else {
-            pixels.setBrightness(appState.visorBrightness * 63);
+            pixels.setBrightness(appState.visorBrightness * BRIGHTNESS_STEP);
         }
 
         uint32_t color = getVisorColorValue(appState.visorColor);
