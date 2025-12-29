@@ -55,12 +55,12 @@ void onBootSeqChange(MenuItem* item) {
 
 // --- VISOR SUBMENU ---
 const char* visorOnOffOptions[] = {"Off", "On"};
-const char* visorModeOptions[] = {"Solid", "Flashing", "Pulsing"};
+const char* visorModeOptions[] = {"Solid", "Flashing", "Pulsing", "Strobe"};
 const char* visorColorOptions[] = {"White", "Blue", "Green", "Yellow", "Orange", "Red"};
 const char* visorBrightnessOptions[] = {"1", "2", "3", "4"};
 MenuItem visorMenuItems[] = {
     {"On/Off",     MenuItemType::TOGGLE, nullptr, 0, visorOnOffOptions,      2, nullptr, onVisorToggle,          0},
-    {"Mode",       MenuItemType::CYCLE,  nullptr, 0, visorModeOptions,       3, nullptr, onVisorModeChange,      0},
+    {"Mode",       MenuItemType::CYCLE,  nullptr, 0, visorModeOptions,       4, nullptr, onVisorModeChange,      0},
     {"Color",      MenuItemType::CYCLE,  nullptr, 0, visorColorOptions,      6, nullptr, onVisorColorChange,     0},
     {"Brightness", MenuItemType::CYCLE,  nullptr, 0, visorBrightnessOptions, 4, nullptr, onVisorBrightnessChange,0},
     {"<- Back",    MenuItemType::BACK,   nullptr, 0, nullptr,                0, nullptr, nullptr,                0}

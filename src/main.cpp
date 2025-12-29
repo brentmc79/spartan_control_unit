@@ -63,6 +63,8 @@ void saveAppState();
 void loadAppState();
 void updateMenuFromState(); // Defined in menu_system.cpp
 void pulseLeds();
+void flashLeds();
+void strobeLeds();
 
 
 void setupInterface() {
@@ -237,6 +239,10 @@ void loop() {
 
     if (isReceiver && appState.visorOn && appState.visorMode == VisorMode::PULSING) {
         pulseLeds();
+    } else if (isReceiver && appState.visorOn && appState.visorMode == VisorMode::FLASHING) {
+        flashLeds();
+    } else if (isReceiver && appState.visorOn && appState.visorMode == VisorMode::STROBE) {
+        strobeLeds();
     }
 }
 
@@ -342,7 +348,7 @@ void updateHardwareState(const CommandPayload& payload) {
 void pulseLeds() {
     // Non-blocking pulsing effect
     // Uses a sine wave to smoothly ramp the brightness up and down
-    float brightness = (sin(millis() / 500.0 * PI) + 1) / 2.0;
+    float brightness = (sin(millis() / 1000.0 * PI) + 1) / 2.0;
     
     uint32_t color;
     switch (appState.visorColor) {
@@ -357,7 +363,68 @@ void pulseLeds() {
 
     pixels.fill(color, 0, NUM_LEDS);
     pixels.setBrightness(brightness * (appState.visorBrightness * 63));
+    Serial.println("Brightness: " + String(brightness * (appState.visorBrightness * 63)));
     pixels.show();
+}
+
+void flashLeds() {
+    // Non-blocking flashing effect
+    // Uses millis() to toggle the LEDs on and off
+    static unsigned long lastToggle = 0;
+    unsigned long currentMillis = millis();
+
+    if (currentMillis - lastToggle >= 500) { // Toggle every 500ms
+        lastToggle = currentMillis;
+
+        if (pixels.getBrightness() > 0) {
+            pixels.setBrightness(0);
+        } else {
+            pixels.setBrightness(appState.visorBrightness * 63);
+        }
+
+        uint32_t color;
+        switch (appState.visorColor) {
+            case VisorColor::WHITE:  color = pixels.Color(255, 255, 255); break;
+            case VisorColor::BLUE:   color = pixels.Color(0, 0, 255);   break;
+            case VisorColor::GREEN:  color = pixels.Color(0, 255, 0);   break;
+            case VisorColor::YELLOW: color = pixels.Color(255, 255, 0); break;
+            case VisorColor::ORANGE: color = pixels.Color(255, 128, 0); break;
+            case VisorColor::RED:    color = pixels.Color(255, 0, 0);   break;
+            default:                 color = pixels.Color(0, 0, 0);     break; // Off
+        }
+        pixels.fill(color, 0, NUM_LEDS);
+        pixels.show();
+    }
+}
+
+void strobeLeds() {
+    // Non-blocking strobe effect
+    // Uses millis() to toggle the LEDs on and off rapidly
+    static unsigned long lastToggle = 0;
+    unsigned long currentMillis = millis();
+
+    if (currentMillis - lastToggle >= 100) { // Toggle every 100ms
+        lastToggle = currentMillis;
+
+        if (pixels.getBrightness() > 0) {
+            pixels.setBrightness(0);
+        } else {
+            pixels.setBrightness(appState.visorBrightness * 63);
+        }
+
+        uint32_t color;
+        switch (appState.visorColor) {
+            case VisorColor::WHITE:  color = pixels.Color(255, 255, 255); break;
+            case VisorColor::BLUE:   color = pixels.Color(0, 0, 255);   break;
+            case VisorColor::GREEN:  color = pixels.Color(0, 255, 0);   break;
+            case VisorColor::YELLOW: color = pixels.Color(255, 255, 0); break;
+            case VisorColor::ORANGE: color = pixels.Color(255, 128, 0); break;
+            case VisorColor::RED:    color = pixels.Color(255, 0, 0);   break;
+            default:                 color = pixels.Color(0, 0, 0);     break; // Off
+        }
+        pixels.fill(color, 0, NUM_LEDS);
+        pixels.show();
+    }
 }
 
 void saveAppState() {

@@ -8,7 +8,7 @@ This is a C++ project for an ESP32 microcontroller using the PlatformIO framewor
 
 - UI navigation via 2 momentary buttons where one button traverses UI elements, and the other button selects the active UI element
 - Toggle cooling fans on and off
-- Controlling the color, brightness, and display style of a pair of addressable LEDs (including a corrected pulsing effect)
+- Controlling the color, brightness, and display style of a pair of addressable LEDs (including corrected pulsing, flashing, and strobe effects)
 - Configuring a screensaver animation to play when idle
 - Displaying one of several boot-up animation sequences
 - Storing and loading selected configuration to and from non-volatile memory

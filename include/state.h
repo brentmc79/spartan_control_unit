@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 // Enum for Visor Mode
-enum class VisorMode : uint8_t { SOLID, FLASHING, PULSING };
+enum class VisorMode : uint8_t { SOLID, FLASHING, PULSING, STROBE };
 
 // Enum for Visor Color
 enum class VisorColor : uint8_t { WHITE, BLUE, GREEN, YELLOW, ORANGE, RED };
