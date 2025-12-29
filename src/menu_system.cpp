@@ -2,6 +2,7 @@
 #include "theme.h"
 #include "state.h"
 #include "communication.h"
+#include "layout.h"
 
 extern void saveAppState(); // Forward declaration for saving app state"
 
@@ -138,11 +139,10 @@ void MenuController::nextItem() {
     MenuState& currentState = navigationStack.back();
     currentState.selectedIndex = (currentState.selectedIndex + 1) % currentState.menuSize;
 
-    const int VIEWPORT_SIZE = 4;
     if (currentState.selectedIndex == 0) {
         currentState.scrollOffset = 0;
-    } else if (currentState.selectedIndex >= currentState.scrollOffset + VIEWPORT_SIZE) {
-        currentState.scrollOffset = currentState.selectedIndex - VIEWPORT_SIZE + 1;
+    } else if (currentState.selectedIndex >= currentState.scrollOffset + MENU_VIEWPORT_SIZE) {
+        currentState.scrollOffset = currentState.selectedIndex - MENU_VIEWPORT_SIZE + 1;
     }
 
     isDirty = true;
@@ -190,27 +190,24 @@ void MenuController::render() {
 }
 
 void MenuController::renderSidebar() {
-    tft.drawLine(235, 0, 235, 165, HEX_MUTED);
-    tft.drawLine(236, 0, 236, 165, HEX_BORDER);
-    tft.drawLine(237, 0, 237, 165, HEX_MUTED);
-    tft.drawLine(238, 0, 238, 165, HEX_MUTED);
-    tft.drawLine(239, 5, 239, 170, HEX_BORDER);
-    tft.drawLine(240, 5, 240, 170, HEX_MUTED);
+    int x = SIDEBAR_X;
+    int h = SCREEN_HEIGHT - 5;
+    tft.drawLine(x,     0, x,     h,                HEX_MUTED);
+    tft.drawLine(x + 1, 0, x + 1, h,                HEX_BORDER);
+    tft.drawLine(x + 2, 0, x + 2, h,                HEX_MUTED);
+    tft.drawLine(x + 3, 0, x + 3, h,                HEX_MUTED);
+    tft.drawLine(x + 4, 5, x + 4, SCREEN_HEIGHT,    HEX_BORDER);
+    tft.drawLine(x + 5, 5, x + 5, SCREEN_HEIGHT,    HEX_MUTED);
 }
-
-#define BTN_HEIGHT 35
-#define BTN_RADIUS 6
-#define FONT_SIZE 2
 
 void MenuController::renderMenuItems() {
     MenuState& currentState = navigationStack.back();
-    const int VIEWPORT_SIZE = 4;
     int startX = 0;
-    int startY = 5;
-    int gap = 7;
-    int width = 220;
+    int startY = MENU_START_Y;
+    int gap = MENU_BTN_GAP;
+    int width = MENU_CONTENT_WIDTH;
 
-    int viewportEnd = currentState.scrollOffset + VIEWPORT_SIZE;
+    int viewportEnd = currentState.scrollOffset + MENU_VIEWPORT_SIZE;
     if (viewportEnd > currentState.menuSize) {
         viewportEnd = currentState.menuSize;
     }
@@ -218,19 +215,19 @@ void MenuController::renderMenuItems() {
     for (int i = currentState.scrollOffset; i < viewportEnd; i++) {
         MenuItem& item = currentState.menu[i];
         bool isActive = (i == currentState.selectedIndex);
-        
+
         int viewportIndex = i - currentState.scrollOffset;
-        int currentY = startY + (viewportIndex * (BTN_HEIGHT + gap));
+        int currentY = startY + (viewportIndex * (MENU_BTN_HEIGHT + gap));
 
         uint16_t fillColor = isActive ? HEX_BORDER : HEX_MUTED;
         uint16_t textColor = isActive ? HEX_BG : HEX_TEXT_PRI;
 
-        tft.fillRoundRect(startX + 2, currentY + 2, width - 4, BTN_HEIGHT - 4, BTN_RADIUS - 2, fillColor);
-        tft.drawRoundRect(startX, currentY, width, BTN_HEIGHT, BTN_RADIUS, HEX_BORDER);
-        
+        tft.fillRoundRect(startX + 2, currentY + 2, width - 4, MENU_BTN_HEIGHT - 4, MENU_BTN_RADIUS - 2, fillColor);
+        tft.drawRoundRect(startX, currentY, width, MENU_BTN_HEIGHT, MENU_BTN_RADIUS, HEX_BORDER);
+
         if (isActive) {
-             tft.drawLine(startX+width-40, currentY+BTN_HEIGHT-3, startX+width-4, currentY+BTN_HEIGHT-3, TFT_BLACK);
-             tft.drawLine(startX+width-39, currentY+BTN_HEIGHT-4, startX+width-4, currentY+BTN_HEIGHT-4, TFT_BLACK);
+             tft.drawLine(startX+width-40, currentY+MENU_BTN_HEIGHT-3, startX+width-4, currentY+MENU_BTN_HEIGHT-3, TFT_BLACK);
+             tft.drawLine(startX+width-39, currentY+MENU_BTN_HEIGHT-4, startX+width-4, currentY+MENU_BTN_HEIGHT-4, TFT_BLACK);
         }
 
         String label = String(item.label);
@@ -240,8 +237,8 @@ void MenuController::renderMenuItems() {
         String finalLabel = isActive ? "> " + label + " <" : label;
 
         tft.setTextColor(textColor);
-        tft.setTextSize(FONT_SIZE);
+        tft.setTextSize(MENU_FONT_SIZE);
         tft.setTextDatum(ML_DATUM);
-        tft.drawString(finalLabel, startX + 15, currentY + BTN_HEIGHT / 2);
+        tft.drawString(finalLabel, startX + 15, currentY + MENU_BTN_HEIGHT / 2);
     }
 }

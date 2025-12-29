@@ -1,9 +1,6 @@
 #include "loading_animations.h"
 #include <TFT_eSPI.h>
 
-int16_t dispH = 170;
-int16_t dispW = 320;
-
 /**
  * @brief Helper function to draw random noise on the screen for a glitch effect.
  * @param intensity The number of noise elements (pixels, lines) to draw.
@@ -32,6 +29,13 @@ void drawNoise(int intensity, TFT_eSPI* displayPtr) {
 
 void loadingAnimation1(TFT_eSPI* displayPtr){
   TFT_eSPI& display = *displayPtr;
+  int16_t w = display.width();
+  int16_t h = display.height();
+
+  // Calculate centered positions for text and progress bar
+  int textX = (w - 144) / 2;  // 144 is approx width of "Mjolnir MkIV" at size 2
+  int progressBarWidth = 144;
+  int progressBarX = (w - progressBarWidth) / 2;
 
   for(int i=0; i<1; i++){
     for(int k=0; k<2; k++){
@@ -39,37 +43,36 @@ void loadingAnimation1(TFT_eSPI* displayPtr){
         display.fillScreen(TFT_BLACK);
         delay(700);
       }
-      display.drawRect(0, 0, dispW, dispH, TFT_WHITE);
-      display.drawLine(dispW-8, dispH-1, dispW-1, dispH-8, TFT_WHITE);
-      display.drawTriangle(dispW-7, dispH-1, dispW-1, dispH-1, dispW-1, dispH-7, TFT_BLACK);
-      display.setTextSize(2);           
-      display.setTextColor(TFT_WHITE);      
-      display.setCursor(86,18); 
+      display.drawRect(0, 0, w, h, TFT_WHITE);
+      display.drawLine(w-8, h-1, w-1, h-8, TFT_WHITE);
+      display.drawTriangle(w-7, h-1, w-1, h-1, w-1, h-7, TFT_BLACK);
+      display.setTextSize(2);
+      display.setTextColor(TFT_WHITE);
+      display.setCursor(textX, 18);
       display.print("Mjolnir MkIV");
-      display.setCursor(85,38); 
+      display.setCursor(textX - 1, 38);
       display.print("INITIALIZING");
     }
     delay(400);
-    for(int j=0; j<142; j++){
-      display.drawRect(85, 56, 144, 17, TFT_WHITE);
-      display.drawRect(86, 57, j+1, 15, TFT_WHITE);
+    for(int j=0; j<progressBarWidth-2; j++){
+      display.drawRect(progressBarX, 56, progressBarWidth, 17, TFT_WHITE);
+      display.drawRect(progressBarX+1, 57, j+1, 15, TFT_WHITE);
       delay(25);
     }
     delay(200);
     display.fillScreen(TFT_BLACK);
-    display.drawRect(0, 0, dispW, dispH, TFT_WHITE);
-    display.drawLine(dispW-8, dispH-1, dispW-1, dispH-8, TFT_WHITE);
-    display.drawTriangle(dispW-7, dispH-1, dispW-1, dispH-1, dispW-1, dispH-7, TFT_BLACK);
-    display.setCursor(86,18);
+    display.drawRect(0, 0, w, h, TFT_WHITE);
+    display.drawLine(w-8, h-1, w-1, h-8, TFT_WHITE);
+    display.drawTriangle(w-7, h-1, w-1, h-1, w-1, h-7, TFT_BLACK);
+    display.setCursor(textX, 18);
     display.print("Mjolnir MkIV");
     display.setTextSize(5);
-    display.setCursor(84,40);
+    display.setCursor(textX - 2, 40);
     display.print("READY");
   }
 
   Serial.println("");
-  Serial.println("Hello, XIAO ESP32-C3!");
-  Serial.println("Welcome to Wokwi :-)");
+  Serial.println("Loading animation 1 complete");
 }
 
 void loadingAnimation2(TFT_eSPI* displayPtr){
