@@ -245,7 +245,8 @@ void setup() {
 void loop() {
     if (isReceiverSetup) {
       SetupPayload setupPayload;
-      strcpy(setupPayload.macAddress, WiFi.macAddress().c_str());
+      strncpy(setupPayload.macAddress, WiFi.macAddress().c_str(), sizeof(setupPayload.macAddress) - 1);
+      setupPayload.macAddress[sizeof(setupPayload.macAddress) - 1] = '\0';
       esp_now_send(broadcastAddress, (uint8_t *) &setupPayload, sizeof(setupPayload));
       Serial.println("Sent MAC address");
       delay(2000);
