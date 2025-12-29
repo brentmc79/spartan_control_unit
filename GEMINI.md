@@ -11,7 +11,7 @@ This is a C++ project for an ESP32 microcontroller using the PlatformIO framewor
 - Controlling the color, brightness, and display style of a pair of addressable LEDs
 - Configuring a screensaver animation to play when idle
 - Displaying one of several boot-up animation sequences
-- Storing selected configuration to be loaded on next boot up
+- Storing and loading selected configuration to and from non-volatile memory
 
 ## System Architecture
 
@@ -21,13 +21,13 @@ This project is designed to run on two separate ESP32 devices that communicate w
 
 *   **MCU:** ESP32 Dev Module with integrated TFT LCD
 *   **Peripherals:** Two momentary push buttons for UI navigation
-*   **Role:** This device acts as the user interface. It has a screen and buttons to control the system.
+*   **Role:** This device acts as the user interface. It has a screen and buttons to control the system. On boot, it loads the saved state and updates the menu system to reflect the current configuration.
 
 ### Receiver Device
 
 *   **MCU:** ESP32-S3 Super Mini
 *   **Peripherals:** Addressable LEDs and a 5V DC fan (controlled via a transistor)
-*   **Role:** This device receives commands from the Interface Device to control the LEDs and fan. It also blinks its onboard LED when a message is received.
+*   **Role:** This device receives commands from the Interface Device to control the LEDs and fan. It also blinks its onboard LED when a message is received. Upon receiving a state update, it saves the new state and updates its LEDs and fans accordingly.
 
 ## Hardware
 
@@ -128,6 +128,8 @@ Build and upload the special setup firmware to each device using the following P
     ```
 
 ### 2. Discover MAC Addresses
+
+During this phase, `SetupPayload` messages are used to exchange MAC addresses between devices.
 
 1.  Power on both devices.
 2.  The **Interface Device**'s screen will display its own MAC address and then wait to receive a message from the receiver.

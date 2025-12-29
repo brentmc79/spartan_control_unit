@@ -8,6 +8,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include <OneButton.h>
+#include <Preferences.h>
 
 enum class DeviceMode : uint8_t {
   INTERFACE,
@@ -33,6 +34,8 @@ Adafruit_NeoPixel onboardLED(1, 48, NEO_GRB + NEO_KHZ800);
 OneButton buttonOne(BUTTON_1, true, true);
 OneButton buttonTwo(BUTTON_2, true, true);
 
+Preferences preferences;
+
 MenuController* menuController = nullptr;
 
 // Defined in menu_system.cpp
@@ -44,14 +47,7 @@ uint8_t recvAddress[] = {0x24, 0x58, 0x7C, 0xDB, 0x31, 0x3C}; // esp32 s3 super 
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 uint8_t (*peerAddress)[6] = NULL;
 
-typedef struct struct_message {
-    char msg[32];
-    int val;
-} struct_message;
-
-struct_message incomingReadings;
-struct_message outgoingReadings;
-
+String macAddress; // This will hold the MAC address string
 // --- Forward Declarations ---
 void handleNext();
 void handleSelect();
@@ -62,6 +58,10 @@ void setupReceiverSetup();
 void setupEspComms();
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
+void updateHardwareState(const CommandPayload& payload);
+void saveAppState();
+void loadAppState();
+void updateMenuFromState(); // Defined in menu_system.cpp
 
 
 void setupInterface() {
@@ -177,9 +177,14 @@ void setup() {
     delay(1000);
     Serial.println("Starting SpartanOS...");
 
+    loadAppState();
+    updateMenuFromState();
+
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
     delay(100);
+
+    macAddress = WiFi.macAddress();
 
     if (isInterfaceSetup) {
       setupInterfaceSetup();
@@ -208,8 +213,9 @@ void setup() {
 
 void loop() {
     if (isReceiverSetup) {
-      strcpy(outgoingReadings.msg, WiFi.macAddress().c_str());
-      esp_now_send(broadcastAddress, (uint8_t *) &outgoingReadings, sizeof(outgoingReadings));
+      SetupPayload setupPayload;
+      strcpy(setupPayload.macAddress, WiFi.macAddress().c_str());
+      esp_now_send(broadcastAddress, (uint8_t *) &setupPayload, sizeof(setupPayload));
       Serial.println("Sent MAC address");
       delay(2000);
       return;
@@ -250,25 +256,97 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
-  Serial.print("Message from Peer: ");
-  Serial.println(incomingReadings.msg);
-  Serial.print("Value from Peer: ");
-  Serial.println(incomingReadings.val);
+  if (isReceiver) {
+    if (len == sizeof(CommandPayload)) {
+      CommandPayload payload;
+      memcpy(&payload, incomingData, sizeof(CommandPayload));
+      Serial.print("Bytes received (CommandPayload): ");
+      Serial.println(len);
+      // Process CommandPayload
+      updateHardwareState(payload);
 
-  if (isInterfaceSetup) {
-    tft.setCursor(0, 80);
-    tft.print("Receiver MAC:");
-    tft.setCursor(0, 100);
-    tft.print(incomingReadings.msg);
-  } else if (isReceiver) { // Blink onboard LED on receiver for incoming message
-    onboardLED.setPixelColor(0, onboardLED.Color(0, 0, 255)); // Blue color
-    onboardLED.setBrightness(10);
-    onboardLED.show();
-    delay(50);
-    onboardLED.clear();
-    onboardLED.show();
+      // Blink onboard LED on receiver for incoming message
+      onboardLED.setPixelColor(0, onboardLED.Color(0, 0, 255)); // Blue color
+      onboardLED.setBrightness(10);
+      onboardLED.show();
+      delay(50);
+      onboardLED.clear();
+      onboardLED.show();
+    } else {
+      Serial.print("Received unexpected payload size for receiver: ");
+      Serial.println(len);
+    }
+  } else if (isInterfaceSetup) {
+    if (len == sizeof(SetupPayload)) {
+      SetupPayload setupPayload;
+      memcpy(&setupPayload, incomingData, sizeof(SetupPayload));
+      Serial.print("Bytes received (SetupPayload): ");
+      Serial.println(len);
+      Serial.print("Receiver MAC: ");
+      Serial.println(setupPayload.macAddress);
+
+      tft.setCursor(0, 80);
+      tft.print("Receiver MAC:");
+      tft.setCursor(0, 100);
+      tft.print(setupPayload.macAddress);
+    } else {
+      Serial.print("Received unexpected payload size for interface setup: ");
+      Serial.println(len);
+    }
+  } else {
+    // For other modes, just print raw data (or ignore)
+    Serial.print("Bytes received (raw): ");
+    Serial.println(len);
   }
+}
+
+// Function to update the hardware state based on the CommandPayload
+void updateHardwareState(const CommandPayload& payload) {
+  // Update LEDs
+  if (payload.visorOn) {
+    uint32_t color;
+    switch (payload.visorColor) {
+      case VisorColor::WHITE: color = pixels.Color(255, 255, 255); break;
+      case VisorColor::BLUE:  color = pixels.Color(0, 0, 255); break;
+      case VisorColor::GREEN: color = pixels.Color(0, 255, 0); break;
+      case VisorColor::YELLOW: color = pixels.Color(255, 255, 0); break;
+      case VisorColor::ORANGE: color = pixels.Color(255, 128, 0); break;
+      case VisorColor::RED:   color = pixels.Color(255, 0, 0); break;
+      default: color = pixels.Color(0, 0, 0); break; // Off
+    }
+    pixels.setBrightness(payload.visorBrightness * 63); // Map 1-4 to 0-255
+    pixels.fill(color, 0, NUM_LEDS);
+  } else {
+    pixels.clear();
+  }
+  pixels.show();
+
+  // Update Fans
+  digitalWrite(FAN_1_CTRL, payload.thermalsOn ? HIGH : LOW);
+  // Assuming FAN_2_CTRL also exists and follows thermalsOn
+  // digitalWrite(FAN_2_CTRL, payload.thermalsOn ? HIGH : LOW);
+}
+
+void saveAppState() {
+    preferences.begin("spartan-state", false); // Open Preferences in read-write mode
+    preferences.putBool("visorOn", appState.visorOn);
+    preferences.putUChar("visorMode", (uint8_t)appState.visorMode);
+    preferences.putUChar("visorColor", (uint8_t)appState.visorColor);
+    preferences.putUChar("visorBrightness", appState.visorBrightness);
+    preferences.putBool("thermalsOn", appState.thermalsOn);
+    preferences.putUChar("hudStyle", (uint8_t)appState.hudStyle);
+    preferences.putUChar("bootSequence", (uint8_t)appState.bootSequence);
+    preferences.end();
+}
+
+void loadAppState() {
+    preferences.begin("spartan-state", true); // Open Preferences in read-only mode
+    appState.visorOn = preferences.getBool("visorOn", false); // Default to false
+    appState.visorMode = (VisorMode)preferences.getUChar("visorMode", (uint8_t)VisorMode::SOLID); // Default to SOLID
+    appState.visorColor = (VisorColor)preferences.getUChar("visorColor", (uint8_t)VisorColor::BLUE); // Default to BLUE
+    appState.visorBrightness = preferences.getUChar("visorBrightness", 3); // Default to 3
+    appState.thermalsOn = preferences.getBool("thermalsOn", false); // Default to false
+    appState.hudStyle = (HudStyle)preferences.getUChar("hudStyle", (uint8_t)HudStyle::BIOMETRIC); // Default to BIOMETRIC
+    appState.bootSequence = (BootSequence)preferences.getUChar("bootSequence", (uint8_t)BootSequence::UNSC_LOGO); // Default to UNSC_LOGO
+    preferences.end();
 }

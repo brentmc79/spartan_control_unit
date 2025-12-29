@@ -3,41 +3,50 @@
 #include "state.h"
 #include "communication.h"
 
+extern void saveAppState(); // Forward declaration for saving app state"
+
 // --- Callback Functions ---
 
 void onVisorToggle(MenuItem* item) {
     appState.visorOn = item->currentOption;
     sendStateUpdate();
+    saveAppState();
 }
 
 void onVisorModeChange(MenuItem* item) {
     appState.visorMode = (VisorMode)item->currentOption;
     sendStateUpdate();
+    saveAppState();
 }
 
 void onVisorColorChange(MenuItem* item) {
     appState.visorColor = (VisorColor)item->currentOption;
     sendStateUpdate();
+    saveAppState();
 }
 
 void onVisorBrightnessChange(MenuItem* item) {
     appState.visorBrightness = item->currentOption + 1; // Options are "1", "2", etc.
     sendStateUpdate();
+    saveAppState();
 }
 
 void onThermalsToggle(MenuItem* item) {
     appState.thermalsOn = item->currentOption;
     sendStateUpdate();
+    saveAppState();
 }
 
 void onHudChange(MenuItem* item) {
     appState.hudStyle = (HudStyle)item->currentOption;
     // This is a local-only change, no need to send ESP-NOW update
+    saveAppState();
 }
 
 void onBootSeqChange(MenuItem* item) {
     appState.bootSequence = (BootSequence)item->currentOption;
     // Also a local-only change
+    saveAppState();
 }
 
 
@@ -86,6 +95,23 @@ MenuItem mainMenuItems[] = {
     {"SETTINGS", MenuItemType::SUBMENU, settingsMenuItems, sizeof(settingsMenuItems) / sizeof(MenuItem), nullptr, 0, nullptr, nullptr, 0}
 };
 const int mainMenuItemCount = sizeof(mainMenuItems) / sizeof(MenuItem);
+
+void updateMenuFromState() {
+    // Visor Settings
+    visorMenuItems[0].currentOption = appState.visorOn ? 1 : 0;
+    visorMenuItems[1].currentOption = (int)appState.visorMode;
+    visorMenuItems[2].currentOption = (int)appState.visorColor;
+    visorMenuItems[3].currentOption = appState.visorBrightness - 1;
+
+    // Thermals
+    thermalsMenuItems[0].currentOption = appState.thermalsOn ? 1 : 0;
+
+    // HUD
+    hudMenuItems[0].currentOption = (int)appState.hudStyle;
+
+    // Settings
+    settingsMenuItems[0].currentOption = (int)appState.bootSequence;
+}
 
 
 // --- Controller Implementation ---

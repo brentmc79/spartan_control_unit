@@ -69,3 +69,6 @@ private:
 // Make menu definitions accessible globally
 extern MenuItem mainMenuItems[];
 extern const int mainMenuItemCount;
+
+// Updates the menu items to reflect the current AppState
+void updateMenuFromState();

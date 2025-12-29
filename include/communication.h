@@ -15,6 +15,11 @@ struct CommandPayload {
     bool thermalsOn;
 };
 
+// This struct is used during the setup phase to exchange MAC addresses
+struct SetupPayload {
+    char macAddress[18]; // MAC addresses are 17 characters long + null terminator
+};
+
 // Initializes the ESP-NOW communication interface
 void initCommunication();
 
