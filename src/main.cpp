@@ -42,8 +42,10 @@ MenuController* menuController = nullptr;
 extern MenuItem mainMenuItems[];
 extern const int mainMenuItemCount;
 
-uint8_t sendAddress[] = {0x44, 0x17, 0x93, 0x6C, 0x62, 0x84}; // esp32 1.9 in tft lcd
-uint8_t recvAddress[] = {0x24, 0x58, 0x7C, 0xDB, 0x31, 0x3C}; // esp32 s3 super mini
+// Peer MAC addresses - loaded from Preferences after running setup firmware
+// These defaults are placeholders; run setup firmware to pair devices
+uint8_t sendAddress[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // Interface MAC (set by setup)
+uint8_t recvAddress[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // Receiver MAC (set by setup)
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 uint8_t (*peerAddress)[6] = NULL;
 
@@ -61,6 +63,9 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 void updateHardwareState(const CommandPayload& payload);
 void saveAppState();
 void loadAppState();
+void parseMacAddress(const char* macStr, uint8_t* macBytes);
+void savePeerAddresses();
+bool loadPeerAddresses();
 void updateMenuFromState(); // Defined in menu_system.cpp
 void pulseLeds();
 void flashLeds();
@@ -140,6 +145,29 @@ void setupReceiverSetup() {
 }
 
 void setupEspComms() {
+  // Load saved peer addresses (falls back to zeros if not found)
+  bool hasAddresses = loadPeerAddresses();
+
+  if (!hasAddresses) {
+    Serial.println("WARNING: No peer addresses configured!");
+    Serial.println("Run the setup firmware to pair devices.");
+
+    if (isInterface) {
+      // Show warning on display
+      tft.fillScreen(TFT_BLACK);
+      tft.setTextColor(TFT_YELLOW);
+      tft.setTextSize(2);
+      tft.setCursor(10, 60);
+      tft.print("No peer configured!");
+      tft.setCursor(10, 90);
+      tft.print("Run setup firmware");
+      tft.setCursor(10, 110);
+      tft.print("to pair devices.");
+      tft.setTextColor(TFT_WHITE);
+      delay(3000);
+    }
+  }
+
   if (isInterface) {
     peerAddress = &recvAddress;
   } else {
@@ -301,10 +329,21 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       Serial.print("Receiver MAC: ");
       Serial.println(setupPayload.macAddress);
 
-      tft.setCursor(0, 80);
+      // Parse and save both MAC addresses
+      parseMacAddress(WiFi.macAddress().c_str(), sendAddress);
+      parseMacAddress(setupPayload.macAddress, recvAddress);
+      savePeerAddresses();
+
+      tft.setCursor(0, 60);
       tft.print("Receiver MAC:");
-      tft.setCursor(0, 100);
+      tft.setCursor(0, 80);
       tft.print(setupPayload.macAddress);
+      tft.setCursor(0, 120);
+      tft.setTextColor(TFT_GREEN);
+      tft.print("Addresses saved!");
+      tft.setCursor(0, 140);
+      tft.print("Upload normal firmware");
+      tft.setTextColor(TFT_WHITE);
     } else {
       Serial.print("Received unexpected payload size for interface setup: ");
       Serial.println(len);
@@ -449,4 +488,48 @@ void loadAppState() {
     appState.hudStyle = (HudStyle)preferences.getUChar("hudStyle", (uint8_t)HudStyle::BIOMETRIC); // Default to BIOMETRIC
     appState.bootSequence = (BootSequence)preferences.getUChar("bootSequence", (uint8_t)BootSequence::UNSC_LOGO); // Default to UNSC_LOGO
     preferences.end();
+}
+
+void parseMacAddress(const char* macStr, uint8_t* macBytes) {
+    // Parse MAC address string "XX:XX:XX:XX:XX:XX" into 6 bytes
+    sscanf(macStr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+           &macBytes[0], &macBytes[1], &macBytes[2],
+           &macBytes[3], &macBytes[4], &macBytes[5]);
+}
+
+void savePeerAddresses() {
+    preferences.begin("spartan-peers", false);
+    preferences.putBytes("sendAddr", sendAddress, 6);
+    preferences.putBytes("recvAddr", recvAddress, 6);
+    preferences.end();
+    Serial.println("Peer addresses saved to preferences");
+}
+
+bool loadPeerAddresses() {
+    preferences.begin("spartan-peers", true);
+    bool hasSendAddr = preferences.isKey("sendAddr");
+    bool hasRecvAddr = preferences.isKey("recvAddr");
+
+    if (hasSendAddr && hasRecvAddr) {
+        preferences.getBytes("sendAddr", sendAddress, 6);
+        preferences.getBytes("recvAddr", recvAddress, 6);
+        preferences.end();
+
+        Serial.print("Loaded peer addresses - Interface: ");
+        for (int i = 0; i < 6; i++) {
+            Serial.printf("%02X", sendAddress[i]);
+            if (i < 5) Serial.print(":");
+        }
+        Serial.print(" Receiver: ");
+        for (int i = 0; i < 6; i++) {
+            Serial.printf("%02X", recvAddress[i]);
+            if (i < 5) Serial.print(":");
+        }
+        Serial.println();
+        return true;
+    }
+
+    preferences.end();
+    Serial.println("No saved peer addresses found, using defaults");
+    return false;
 }

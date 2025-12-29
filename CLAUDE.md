@@ -44,7 +44,7 @@ The `DEVICE_MODE` build flag in `platformio.ini` determines behavior:
 **Communication (`include/communication.h`, `src/communication.cpp`):**
 - ESP-NOW protocol for low-latency wireless
 - `CommandPayload` struct sent from Interface to Receiver
-- Peer MAC addresses hardcoded in `main.cpp` (`sendAddress[]`, `recvAddress[]`)
+- Peer MAC addresses stored in NVS (saved during setup, loaded on boot)
 
 **Menu System (`include/menu_system.h`, `src/menu_system.cpp`):**
 - Configuration-driven hierarchical menus
@@ -77,7 +77,14 @@ Button Press → MenuController → AppState update → CommandPayload via ESP-N
 
 ## First-Time Setup
 
-To pair devices, upload setup firmware to both, note the MAC addresses displayed, then update `sendAddress[]` and `recvAddress[]` arrays in `main.cpp` before uploading operational firmware.
+To pair devices:
+1. Upload `esp32dev-interface-setup` to interface device
+2. Upload `esp32-s3-supermini-receiver-setup` to receiver device
+3. Power both on - receiver broadcasts its MAC, interface receives and saves both addresses automatically
+4. Wait for "Addresses saved!" confirmation on interface screen
+5. Upload normal firmware (`esp32dev` and `esp32-s3-supermini`) to both devices
+
+MAC addresses are stored in NVS under the "spartan-peers" namespace. If no addresses are found on boot, a warning is displayed.
 
 ## Extending the Menu
 

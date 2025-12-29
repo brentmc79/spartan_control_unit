@@ -31,11 +31,11 @@ This project is designed to run on two separate ESP32 devices that communicate w
 
 ## First-Time Setup: Device Pairing
 
-Before the devices can communicate, you need to perform a one-time setup to "pair" them by hardcoding their MAC addresses into the firmware.
+Before the devices can communicate, you need to perform a one-time setup to "pair" them. The setup firmware automatically discovers and saves the MAC addresses to persistent storage.
 
 ### 1. Upload Setup Firmware
 
-Build and upload the special setup firmware to each device using the following PlatformIO environments:
+Build and upload the special setup firmware to each device:
 
 *   **Interface Device:**
     ```bash
@@ -46,30 +46,20 @@ Build and upload the special setup firmware to each device using the following P
     pio run -e esp32-s3-supermini-receiver-setup --target upload
     ```
 
-### 2. Discover MAC Addresses
+### 2. Pair the Devices
 
 1.  Power on both devices.
-2.  The **Interface Device**'s screen will display its own MAC address and then wait to receive a message from the receiver.
-3.  The **Receiver Device** will start broadcasting its MAC address.
-4.  After a few seconds, the Interface Device will display the Receiver's MAC address on the screen.
-5.  You should now have both MAC addresses displayed on the Interface Device's screen.
+2.  The **Interface Device** screen will display its own MAC address and wait for the receiver.
+3.  The **Receiver Device** will broadcast its MAC address every 2 seconds.
+4.  When the Interface receives the Receiver's MAC, it will:
+    - Display both MAC addresses on screen
+    - Automatically save both addresses to persistent storage
+    - Show "Addresses saved!" confirmation
+5.  Once you see the confirmation, pairing is complete.
 
-### 3. Update Firmware Configuration
+### 3. Upload Operational Firmware
 
-Open `src/main.cpp` and update the following variables with the MAC addresses you discovered:
-
-*   `sendAddress`: Set this to the MAC address of your **Interface Device**.
-*   `recvAddress`: Set this to the MAC address of your **Receiver Device**.
-
-For example:
-```cpp
-uint8_t sendAddress[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}; // Interface Device MAC
-uint8_t recvAddress[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66}; // Receiver Device MAC
-```
-
-### 4. Upload Final Firmware
-
-Now that the MAC addresses are configured, build and upload the final operational firmware:
+Upload the normal firmware to both devices:
 
 *   **Interface Device:**
     ```bash
@@ -80,7 +70,11 @@ Now that the MAC addresses are configured, build and upload the final operationa
     pio run -e esp32-s3-supermini --target upload
     ```
 
-The devices are now paired and ready for use.
+The devices will automatically load the saved MAC addresses on boot. If no saved addresses are found, the Interface will display a warning prompting you to run the setup firmware.
+
+### Re-Pairing Devices
+
+To pair with different hardware, simply repeat the setup process. The new MAC addresses will overwrite the previously saved ones.
 
 ## Hardware
 
