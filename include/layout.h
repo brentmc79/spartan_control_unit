@@ -10,6 +10,10 @@
 #define MAX_BRIGHTNESS 255
 #define BRIGHTNESS_STEP (MAX_BRIGHTNESS / BRIGHTNESS_LEVELS)
 
+// LED effect timing (milliseconds)
+#define FLASH_INTERVAL_MS 500
+#define STROBE_INTERVAL_MS 100
+
 // Menu button layout
 #define MENU_BTN_HEIGHT 35
 #define MENU_BTN_RADIUS 6

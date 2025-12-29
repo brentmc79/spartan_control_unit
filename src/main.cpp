@@ -409,7 +409,7 @@ void flashLeds() {
     static unsigned long lastToggle = 0;
     unsigned long currentMillis = millis();
 
-    if (currentMillis - lastToggle >= 500) { // Toggle every 500ms
+    if (currentMillis - lastToggle >= FLASH_INTERVAL_MS) {
         lastToggle = currentMillis;
 
         if (pixels.getBrightness() > 0) {
@@ -430,7 +430,7 @@ void strobeLeds() {
     static unsigned long lastToggle = 0;
     unsigned long currentMillis = millis();
 
-    if (currentMillis - lastToggle >= 100) { // Toggle every 100ms
+    if (currentMillis - lastToggle >= STROBE_INTERVAL_MS) {
         lastToggle = currentMillis;
 
         if (pixels.getBrightness() > 0) {
