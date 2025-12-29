@@ -114,7 +114,7 @@ To pair with different hardware, simply repeat the setup process. The new MAC ad
 
 ### Pinout
 
-![Pinout Diagram](docs/pinout.png)
+![Pinout Diagram](docs/esp32_1-9in_tft_lcd_pinout.png)
 ![ESP32-S3 SuperMini Pinout Diagram](docs/esp32_s3_super_mini_pinout.jpg)
 
 ### Wiring
