@@ -62,6 +62,7 @@ void updateHardwareState(const CommandPayload& payload);
 void saveAppState();
 void loadAppState();
 void updateMenuFromState(); // Defined in menu_system.cpp
+void pulseLeds();
 
 
 void setupInterface() {
@@ -233,6 +234,10 @@ void loop() {
     if (menuController) {
         menuController->render();
     }
+
+    if (isReceiver && appState.visorOn && appState.visorMode == VisorMode::PULSING) {
+        pulseLeds();
+    }
 }
 
 // --- Button Handlers ---
@@ -263,6 +268,11 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       Serial.print("Bytes received (CommandPayload): ");
       Serial.println(len);
       // Process CommandPayload
+      appState.visorOn = payload.visorOn;
+      appState.visorMode = payload.visorMode;
+      appState.visorColor = payload.visorColor;
+      appState.visorBrightness = payload.visorBrightness;
+      appState.thermalsOn = payload.thermalsOn;
       updateHardwareState(payload);
 
       // Blink onboard LED on receiver for incoming message
@@ -314,7 +324,9 @@ void updateHardwareState(const CommandPayload& payload) {
       case VisorColor::RED:   color = pixels.Color(255, 0, 0); break;
       default: color = pixels.Color(0, 0, 0); break; // Off
     }
-    pixels.setBrightness(payload.visorBrightness * 63); // Map 1-4 to 0-255
+    if (payload.visorMode != VisorMode::PULSING) {
+      pixels.setBrightness(payload.visorBrightness * 63); // Map 1-4 to 0-255
+    }
     pixels.fill(color, 0, NUM_LEDS);
   } else {
     pixels.clear();
@@ -325,6 +337,27 @@ void updateHardwareState(const CommandPayload& payload) {
   digitalWrite(FAN_1_CTRL, payload.thermalsOn ? HIGH : LOW);
   // Assuming FAN_2_CTRL also exists and follows thermalsOn
   // digitalWrite(FAN_2_CTRL, payload.thermalsOn ? HIGH : LOW);
+}
+
+void pulseLeds() {
+    // Non-blocking pulsing effect
+    // Uses a sine wave to smoothly ramp the brightness up and down
+    float brightness = (sin(millis() / 500.0 * PI) + 1) / 2.0;
+    
+    uint32_t color;
+    switch (appState.visorColor) {
+        case VisorColor::WHITE:  color = pixels.Color(255, 255, 255); break;
+        case VisorColor::BLUE:   color = pixels.Color(0, 0, 255);   break;
+        case VisorColor::GREEN:  color = pixels.Color(0, 255, 0);   break;
+        case VisorColor::YELLOW: color = pixels.Color(255, 255, 0); break;
+        case VisorColor::ORANGE: color = pixels.Color(255, 128, 0); break;
+        case VisorColor::RED:    color = pixels.Color(255, 0, 0);   break;
+        default:                 color = pixels.Color(0, 0, 0);     break; // Off
+    }
+
+    pixels.fill(color, 0, NUM_LEDS);
+    pixels.setBrightness(brightness * (appState.visorBrightness * 63));
+    pixels.show();
 }
 
 void saveAppState() {
