@@ -12,6 +12,7 @@ This is a C++ project for an ESP32 microcontroller using the PlatformIO framewor
 - Configuring a screensaver animation to play when idle
 - Displaying one of several boot-up animation sequences
 - Storing selected configuration to be loaded on next boot up
+- Safety shutdown with visual warning if connection to interface is lost
 
 ## System Architecture
 
@@ -28,6 +29,34 @@ This project is designed to run on two separate ESP32 devices that communicate w
 *   **MCU:** ESP32-S3 Super Mini
 *   **Peripherals:** Addressable LEDs and a 5V DC fan (controlled via a transistor)
 *   **Role:** This device receives commands from the Interface Device to control the LEDs and fan.
+
+### Communication & Safety Shutdown
+
+The Interface and Receiver communicate via ESP-NOW, a low-latency wireless protocol. To ensure safe operation, the system implements a heartbeat/watchdog mechanism:
+
+*   **Heartbeat:** The Interface sends its current state to the Receiver every 5 seconds, even when the user isn't actively changing settings.
+*   **Watchdog:** If the Receiver doesn't receive any messages for 10 seconds, it assumes connection is lost and triggers a safety shutdown.
+
+**Safety Shutdown Sequence:**
+
+1.  Fans are turned off immediately
+2.  LEDs flash bright red for 5 seconds (warning phase)
+3.  LEDs fade from bright red to off over 5 seconds
+4.  Onboard LED stays red to indicate timeout state
+
+This ensures that if the Interface device loses power, crashes, or goes out of range, the Receiver won't leave fans running or LEDs on indefinitely.
+
+**Timing Configuration:**
+
+These values can be adjusted in `include/layout.h`:
+
+```cpp
+#define HEARTBEAT_INTERVAL_MS 5000      // How often interface sends state
+#define RECEIVER_TIMEOUT_MS 10000       // How long before safety shutdown
+#define SHUTDOWN_FLASH_DURATION_MS 5000 // Red flashing duration
+#define SHUTDOWN_FLASH_INTERVAL_MS 200  // Flash toggle rate
+#define SHUTDOWN_FADE_DURATION_MS 5000  // Fade to black duration
+```
 
 ## First-Time Setup: Device Pairing
 
@@ -152,6 +181,41 @@ To build for a specific device, you can use the `-e` flag with the PlatformIO CL
 
 *   Build for Interface Device: `pio run -e esp32dev`
 *   Build for Receiver Device: `pio run -e esp32-s3-supermini`
+
+## Configuration
+
+Most configurable values are centralized in `include/layout.h`. This makes it easy to customize the system without searching through code.
+
+### Display & Menu Layout
+
+```cpp
+#define SCREEN_WIDTH 320           // Display width in pixels
+#define SCREEN_HEIGHT 170          // Display height in pixels
+#define MENU_BTN_HEIGHT 35         // Menu button height
+#define MENU_BTN_RADIUS 6          // Button corner radius
+#define MENU_BTN_GAP 7             // Space between buttons
+#define MENU_VIEWPORT_SIZE 4       // Visible menu items before scrolling
+#define SIDEBAR_WIDTH 85           // Right sidebar width
+```
+
+### LED Settings
+
+```cpp
+#define BRIGHTNESS_LEVELS 4        // Number of brightness steps (1-4)
+#define MAX_BRIGHTNESS 255         // Maximum LED brightness
+#define FLASH_INTERVAL_MS 500      // Flash mode toggle rate
+#define STROBE_INTERVAL_MS 100     // Strobe mode toggle rate
+```
+
+### Communication & Safety
+
+```cpp
+#define HEARTBEAT_INTERVAL_MS 5000      // Interface state broadcast interval
+#define RECEIVER_TIMEOUT_MS 10000       // Watchdog timeout before safety shutdown
+#define SHUTDOWN_FLASH_DURATION_MS 5000 // Red warning flash duration
+#define SHUTDOWN_FLASH_INTERVAL_MS 200  // Warning flash toggle rate
+#define SHUTDOWN_FADE_DURATION_MS 5000  // Fade to black duration
+```
 
 ## Development
 
