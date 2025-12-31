@@ -148,6 +148,20 @@ void MenuController::nextItem() {
     isDirty = true;
 }
 
+void MenuController::prevItem() {
+    MenuState& currentState = navigationStack.back();
+    currentState.selectedIndex = (currentState.selectedIndex - 1 + currentState.menuSize) % currentState.menuSize;
+
+    if (currentState.selectedIndex == currentState.menuSize - 1) {
+        // Wrapped to end - adjust scroll to show last items
+        currentState.scrollOffset = max(0, currentState.menuSize - MENU_VIEWPORT_SIZE);
+    } else if (currentState.selectedIndex < currentState.scrollOffset) {
+        currentState.scrollOffset = currentState.selectedIndex;
+    }
+
+    isDirty = true;
+}
+
 void MenuController::selectItem() {
     MenuState& currentState = navigationStack.back();
     MenuItem& selected = currentState.menu[currentState.selectedIndex];

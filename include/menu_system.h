@@ -49,6 +49,8 @@ public:
     void render();
     // Moves selection to next menu item, wrapping at end
     void nextItem();
+    // Moves selection to previous menu item, wrapping at beginning
+    void prevItem();
     // Activates the selected item (toggle, cycle, navigate, or execute action)
     void selectItem();
 

@@ -36,6 +36,7 @@ Adafruit_NeoPixel pixels2(NUM_LEDS, LED_DATA_2, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel onboardLED(1, 48, NEO_GRB + NEO_KHZ800);
 OneButton buttonOne(BUTTON_1, true, true);
 OneButton buttonTwo(BUTTON_2, true, true);
+OneButton buttonThree(BUTTON_3, true, true);
 
 Preferences preferences;
 
@@ -61,6 +62,7 @@ unsigned long lastHeartbeatTime = 0;
 
 // --- Forward Declarations ---
 void handleNext();
+void handlePrevious();
 void handleSelect();
 void setupInterface();
 void setupReceiver();
@@ -95,6 +97,7 @@ void setupInterface() {
     // Attach button handlers
     buttonOne.attachClick(handleNext);
     buttonTwo.attachClick(handleSelect);
+    buttonThree.attachClick(handlePrevious);
 }
 
 void setupReceiver() {
@@ -271,6 +274,7 @@ void loop() {
 
     buttonOne.tick();
     buttonTwo.tick();
+    buttonThree.tick();
 
     if (menuController) {
         menuController->render();
@@ -306,6 +310,12 @@ void loop() {
 void handleNext() {
     if (menuController) {
         menuController->nextItem();
+    }
+}
+
+void handlePrevious() {
+    if (menuController) {
+        menuController->prevItem();
     }
 }
 

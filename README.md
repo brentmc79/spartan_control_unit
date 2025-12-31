@@ -6,7 +6,7 @@ This is a C++ project for an ESP32 microcontroller using the PlatformIO framewor
 
 ## Features
 
-- UI navigation via 2 momentary buttons where one button traverses UI elements, and the other button selects the active UI element
+- UI navigation via 3 momentary buttons for next, previous, and select actions
 - Toggle cooling fans on and off
 - Controlling the color, brightness, and display style of a pair of addressable LEDs
 - Configuring a screensaver animation to play when idle
@@ -21,7 +21,7 @@ This project is designed to run on two separate ESP32 devices that communicate w
 ### Interface Device
 
 *   **MCU:** ESP32 Dev Module with integrated TFT LCD
-*   **Peripherals:** Two momentary push buttons for UI navigation
+*   **Peripherals:** Three momentary push buttons for UI navigation (next, previous, select)
 *   **Role:** This device acts as the user interface. It has a screen and buttons to control the system.
 
 ### Receiver Device
@@ -108,7 +108,7 @@ To pair with different hardware, simply repeat the setup process. The new MAC ad
 ## Hardware
 
 - Ideaspark ESP32 1.9" TFT LCD Display
-- 2 momentary buttons
+- 3 momentary buttons
 - 2 Addressable LEDs in series
 - 2 3010 DC 5v fans
 
@@ -125,14 +125,18 @@ Here are the suggested connections for the accessories.
 
 For each button, a 10k Ohm pull-down resistor is required.
 
-*   **Button 1:**
+*   **Button 1 (Next):**
     *   Connect one leg to **3.3V**.
     *   Connect the other leg to **GPIO12**.
     *   Connect a 10k Ohm resistor from **GPIO12** to **GND**.
-*   **Button 2:**
+*   **Button 2 (Select):**
     *   Connect one leg to **3.3V**.
     *   Connect the other leg to **GPIO13**.
     *   Connect a 10k Ohm resistor from **GPIO13** to **GND**.
+*   **Button 3 (Previous):**
+    *   Connect one leg to **3.3V**.
+    *   Connect the other leg to **GPIO14**.
+    *   Connect a 10k Ohm resistor from **GPIO14** to **GND**.
 
 #### LEDs (Addressable)
 

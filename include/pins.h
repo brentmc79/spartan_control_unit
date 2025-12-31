@@ -9,6 +9,7 @@
 
 #define BUTTON_1 12
 #define BUTTON_2 13
+#define BUTTON_3 14
 
 #define LED_DATA 8 // GPIO for addressable LEDs (primary)
 #define LED_DATA_2 9 // GPIO for addressable LEDs (secondary)
