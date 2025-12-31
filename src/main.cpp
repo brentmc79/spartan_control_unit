@@ -32,6 +32,7 @@ const bool isReceiverSetup = DEVICE_MODE == DeviceMode::RECEIVER_SETUP;
 // --- Globals ---
 TFT_eSPI tft = TFT_eSPI();
 Adafruit_NeoPixel pixels(NUM_LEDS, LED_DATA, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel pixels2(NUM_LEDS, LED_DATA_2, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel onboardLED(1, 48, NEO_GRB + NEO_KHZ800);
 OneButton buttonOne(BUTTON_1, true, true);
 OneButton buttonTwo(BUTTON_2, true, true);
@@ -102,6 +103,10 @@ void setupReceiver() {
   pixels.begin();
   pixels.clear();
   pixels.show();
+
+  pixels2.begin();
+  pixels2.clear();
+  pixels2.show();
 
   onboardLED.begin();
   onboardLED.clear();
@@ -401,12 +406,16 @@ void updateHardwareState(const CommandPayload& payload) {
     uint32_t color = getVisorColorValue(payload.visorColor);
     if (payload.visorMode != VisorMode::PULSING) {
       pixels.setBrightness(payload.visorBrightness * BRIGHTNESS_STEP);
+      pixels2.setBrightness(payload.visorBrightness * BRIGHTNESS_STEP);
     }
     pixels.fill(color, 0, NUM_LEDS);
+    pixels2.fill(color, 0, NUM_LEDS);
   } else {
     pixels.clear();
+    pixels2.clear();
   }
   pixels.show();
+  pixels2.show();
 
   // Update Fans
   digitalWrite(FAN_1_CTRL, payload.thermalsOn ? HIGH : LOW);
@@ -436,13 +445,17 @@ void resetToSafeState() {
   bool ledOn = true;
 
   pixels.setBrightness(MAX_BRIGHTNESS);
+  pixels2.setBrightness(MAX_BRIGHTNESS);
   while (millis() - flashStart < SHUTDOWN_FLASH_DURATION_MS) {
     if (ledOn) {
       pixels.fill(red, 0, NUM_LEDS);
+      pixels2.fill(red, 0, NUM_LEDS);
     } else {
       pixels.clear();
+      pixels2.clear();
     }
     pixels.show();
+    pixels2.show();
     ledOn = !ledOn;
     delay(SHUTDOWN_FLASH_INTERVAL_MS);
   }
@@ -450,18 +463,23 @@ void resetToSafeState() {
   // Phase 2: Fade from bright red to off over 5 seconds
   unsigned long fadeStart = millis();
   pixels.fill(red, 0, NUM_LEDS);
+  pixels2.fill(red, 0, NUM_LEDS);
 
   while (millis() - fadeStart < SHUTDOWN_FADE_DURATION_MS) {
     float progress = (float)(millis() - fadeStart) / SHUTDOWN_FADE_DURATION_MS;
     uint8_t brightness = MAX_BRIGHTNESS * (1.0 - progress);
     pixels.setBrightness(brightness);
+    pixels2.setBrightness(brightness);
     pixels.show();
+    pixels2.show();
     delay(20);  // Smooth fade with ~50 updates per second
   }
 
   // Final state: LEDs off
   pixels.clear();
+  pixels2.clear();
   pixels.show();
+  pixels2.show();
 }
 
 void pulseLeds() {
@@ -471,9 +489,12 @@ void pulseLeds() {
 
     uint32_t color = getVisorColorValue(appState.visorColor);
     pixels.fill(color, 0, NUM_LEDS);
+    pixels2.fill(color, 0, NUM_LEDS);
     pixels.setBrightness(brightness * (appState.visorBrightness * BRIGHTNESS_STEP));
+    pixels2.setBrightness(brightness * (appState.visorBrightness * BRIGHTNESS_STEP));
     Serial.println("Brightness: " + String(brightness * (appState.visorBrightness * BRIGHTNESS_STEP)));
     pixels.show();
+    pixels2.show();
 }
 
 void flashLeds() {
@@ -487,13 +508,17 @@ void flashLeds() {
 
         if (pixels.getBrightness() > 0) {
             pixels.setBrightness(0);
+            pixels2.setBrightness(0);
         } else {
             pixels.setBrightness(appState.visorBrightness * BRIGHTNESS_STEP);
+            pixels2.setBrightness(appState.visorBrightness * BRIGHTNESS_STEP);
         }
 
         uint32_t color = getVisorColorValue(appState.visorColor);
         pixels.fill(color, 0, NUM_LEDS);
+        pixels2.fill(color, 0, NUM_LEDS);
         pixels.show();
+        pixels2.show();
     }
 }
 
@@ -508,13 +533,17 @@ void strobeLeds() {
 
         if (pixels.getBrightness() > 0) {
             pixels.setBrightness(0);
+            pixels2.setBrightness(0);
         } else {
             pixels.setBrightness(appState.visorBrightness * BRIGHTNESS_STEP);
+            pixels2.setBrightness(appState.visorBrightness * BRIGHTNESS_STEP);
         }
 
         uint32_t color = getVisorColorValue(appState.visorColor);
         pixels.fill(color, 0, NUM_LEDS);
+        pixels2.fill(color, 0, NUM_LEDS);
         pixels.show();
+        pixels2.show();
     }
 }
 
