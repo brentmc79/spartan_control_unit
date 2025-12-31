@@ -189,6 +189,10 @@ void MenuController::selectItem() {
     isDirty = true;
 }
 
+void MenuController::forceRedraw() {
+    isDirty = true;
+}
+
 void MenuController::render() {
     if (!isDirty) return;
 

@@ -53,6 +53,8 @@ public:
     void prevItem();
     // Activates the selected item (toggle, cycle, navigate, or execute action)
     void selectItem();
+    // Forces a full redraw on next render() call
+    void forceRedraw();
 
 private:
     void renderSidebar();

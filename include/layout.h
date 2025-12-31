@@ -19,6 +19,9 @@
 #define HEARTBEAT_INTERVAL_MS 5000
 #define RECEIVER_TIMEOUT_MS 10000
 
+// Screen saver timing (milliseconds)
+#define SCREENSAVER_TIMEOUT_MS 10000
+
 // Safety shutdown animation timing (milliseconds)
 #define SHUTDOWN_FLASH_DURATION_MS 5000
 #define SHUTDOWN_FLASH_INTERVAL_MS 200

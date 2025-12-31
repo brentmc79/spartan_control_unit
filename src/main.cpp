@@ -60,6 +60,10 @@ unsigned long lastMessageTime = 0;
 // Interface heartbeat - tracks last time state was sent to receiver
 unsigned long lastHeartbeatTime = 0;
 
+// Screen saver - tracks last interaction time and active state
+unsigned long lastInteractionTime = 0;
+bool screenSaverActive = false;
+
 // --- Forward Declarations ---
 void handleNext();
 void handlePrevious();
@@ -83,6 +87,9 @@ void flashLeds();
 void strobeLeds();
 uint32_t getVisorColorValue(VisorColor color);
 void resetToSafeState();
+void renderScreenSaver();
+void resetIdleTimer();
+void exitScreenSaver();
 
 
 void setupInterface() {
@@ -98,6 +105,9 @@ void setupInterface() {
     buttonOne.attachClick(handleNext);
     buttonTwo.attachClick(handleSelect);
     buttonThree.attachClick(handlePrevious);
+
+    // Initialize idle timer for screen saver
+    resetIdleTimer();
 }
 
 void setupReceiver() {
@@ -276,8 +286,18 @@ void loop() {
     buttonTwo.tick();
     buttonThree.tick();
 
-    if (menuController) {
-        menuController->render();
+    // Screen saver logic (interface only)
+    if (isInterface) {
+        if (!screenSaverActive && (millis() - lastInteractionTime >= SCREENSAVER_TIMEOUT_MS)) {
+            screenSaverActive = true;
+            renderScreenSaver();
+        }
+
+        if (screenSaverActive) {
+            renderScreenSaver();
+        } else if (menuController) {
+            menuController->render();
+        }
     }
 
     // Interface heartbeat - periodically send state to keep receiver's watchdog happy
@@ -308,18 +328,33 @@ void loop() {
 
 // --- Button Handlers ---
 void handleNext() {
+    resetIdleTimer();
+    if (screenSaverActive) {
+        exitScreenSaver();
+        return;
+    }
     if (menuController) {
         menuController->nextItem();
     }
 }
 
 void handlePrevious() {
+    resetIdleTimer();
+    if (screenSaverActive) {
+        exitScreenSaver();
+        return;
+    }
     if (menuController) {
         menuController->prevItem();
     }
 }
 
 void handleSelect() {
+    resetIdleTimer();
+    if (screenSaverActive) {
+        exitScreenSaver();
+        return;
+    }
     if (menuController) {
         menuController->selectItem();
     }
@@ -554,6 +589,50 @@ void strobeLeds() {
         pixels2.fill(color, 0, NUM_LEDS);
         pixels.show();
         pixels2.show();
+    }
+}
+
+// --- Screen Saver Functions ---
+
+void resetIdleTimer() {
+    lastInteractionTime = millis();
+}
+
+void exitScreenSaver() {
+    if (screenSaverActive) {
+        screenSaverActive = false;
+        // Force menu to redraw on next loop iteration
+        if (menuController) {
+            menuController->forceRedraw();
+        }
+    }
+}
+
+void renderScreenSaver() {
+    // Placeholder implementation - renders based on appState.hudStyle
+    // This will be expanded with actual animations later
+    switch (appState.hudStyle) {
+        case HudStyle::BIOMETRIC:
+            tft.fillScreen(TFT_BLACK);
+            tft.setTextColor(TFT_GREEN);
+            tft.setTextSize(2);
+            tft.setCursor(80, 75);
+            tft.print("BIOMETRIC");
+            break;
+        case HudStyle::RADAR:
+            tft.fillScreen(TFT_BLACK);
+            tft.setTextColor(TFT_GREEN);
+            tft.setTextSize(2);
+            tft.setCursor(110, 75);
+            tft.print("RADAR");
+            break;
+        case HudStyle::MATRIX:
+            tft.fillScreen(TFT_BLACK);
+            tft.setTextColor(TFT_GREEN);
+            tft.setTextSize(2);
+            tft.setCursor(100, 75);
+            tft.print("MATRIX");
+            break;
     }
 }
 
