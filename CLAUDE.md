@@ -92,3 +92,30 @@ Add new `MenuItem` entries in `menu_system.cpp`. Each item specifies:
 - Type: `SUBMENU`, `TOGGLE`, `CYCLE`, `ACTION`, `BACK`
 - Options array for CYCLE items
 - `onUpdate` callback for state changes
+
+## Code Review Progress
+
+A comprehensive code review was performed. All critical, high, and medium priority issues have been resolved.
+
+### Completed Fixes
+
+1. **MAC Address Persistence** - Replaced hardcoded MAC addresses with NVS storage via Preferences
+2. **Centralized Configuration** - Created `layout.h` with display, LED, timing, and menu constants
+3. **Unsafe String Copy** - Replaced `strcpy` with `strncpy` + null termination
+4. **Color Selection Logic** - Created `getVisorColorValue()` utility to eliminate duplicate switch statements
+5. **Brightness Constants** - Added `BRIGHTNESS_LEVELS`, `MAX_BRIGHTNESS`, `BRIGHTNESS_STEP`
+6. **LED Effect Timing** - Added `FLASH_INTERVAL_MS`, `STROBE_INTERVAL_MS` constants
+7. **Connection Safety** - Added heartbeat (5s interval) and watchdog (10s timeout) with safety shutdown animation
+8. **Communication Consolidation** - Removed duplicate ESP-NOW init code, simplified peer registration
+9. **Header Guards** - Standardized all headers to use `#pragma once`
+10. **Memory Management** - Changed `MenuController*` to `std::unique_ptr<MenuController>`
+11. **Function Documentation** - Added brief docs to public API functions in headers
+
+### Remaining Low Priority Items
+
+These are optional improvements that don't affect functionality:
+
+- **main.cpp size** - File is large (~400 lines); receiver/interface logic could be split into separate files
+- **Theme naming** - `HEX_BORDER` is cyan, not border-descriptive; consider semantic names
+- **Unused code paths** - `FAN_2_CTRL` is defined but never used (hardware not connected)
+- **Error handling** - ESP-NOW send failures just log; could add retry logic or visual feedback
