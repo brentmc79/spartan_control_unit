@@ -5,6 +5,7 @@
 #include "layout.h"
 #include "menu_system.h"
 #include "communication.h"
+#include "screensavers.h"
 #include <Adafruit_NeoPixel.h>
 #include <WiFi.h>
 #include <esp_now.h>
@@ -87,6 +88,7 @@ void flashLeds();
 void strobeLeds();
 uint32_t getVisorColorValue(VisorColor color);
 void resetToSafeState();
+void initScreenSaver();
 void renderScreenSaver();
 void resetIdleTimer();
 void exitScreenSaver();
@@ -290,7 +292,7 @@ void loop() {
     if (isInterface) {
         if (!screenSaverActive && (millis() - lastInteractionTime >= SCREENSAVER_TIMEOUT_MS)) {
             screenSaverActive = true;
-            renderScreenSaver();
+            initScreenSaver();
         }
 
         if (screenSaverActive) {
@@ -608,30 +610,33 @@ void exitScreenSaver() {
     }
 }
 
-void renderScreenSaver() {
-    // Placeholder implementation - renders based on appState.hudStyle
-    // This will be expanded with actual animations later
+void initScreenSaver() {
+    // Initialize the appropriate screen saver based on HUD style
     switch (appState.hudStyle) {
         case HudStyle::BIOMETRIC:
-            tft.fillScreen(TFT_BLACK);
-            tft.setTextColor(TFT_GREEN);
-            tft.setTextSize(2);
-            tft.setCursor(80, 75);
-            tft.print("BIOMETRIC");
+            initBiometricScreenSaver();
             break;
         case HudStyle::RADAR:
-            tft.fillScreen(TFT_BLACK);
-            tft.setTextColor(TFT_GREEN);
-            tft.setTextSize(2);
-            tft.setCursor(110, 75);
-            tft.print("RADAR");
+            initRadarScreenSaver();
             break;
         case HudStyle::MATRIX:
-            tft.fillScreen(TFT_BLACK);
-            tft.setTextColor(TFT_GREEN);
-            tft.setTextSize(2);
-            tft.setCursor(100, 75);
-            tft.print("MATRIX");
+            initMatrixScreenSaver();
+            break;
+    }
+    tft.fillScreen(TFT_BLACK);
+}
+
+void renderScreenSaver() {
+    // Render the appropriate screen saver animation based on HUD style
+    switch (appState.hudStyle) {
+        case HudStyle::BIOMETRIC:
+            renderBiometricScreenSaver(tft);
+            break;
+        case HudStyle::RADAR:
+            renderRadarScreenSaver(tft);
+            break;
+        case HudStyle::MATRIX:
+            renderMatrixScreenSaver(tft);
             break;
     }
 }
