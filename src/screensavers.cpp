@@ -182,28 +182,6 @@ struct BiometricState {
 
 static BiometricState bioState;
 
-// Draw corner bracket decorations
-static void drawCornerBrackets(TFT_eSPI& tft) {
-    const int len = 15;
-    const int margin = 3;
-
-    // Top-left
-    tft.drawFastHLine(margin, margin, len, BIO_PRIMARY);
-    tft.drawFastVLine(margin, margin, len, BIO_PRIMARY);
-
-    // Top-right
-    tft.drawFastHLine(SCREEN_WIDTH - margin - len, margin, len, BIO_PRIMARY);
-    tft.drawFastVLine(SCREEN_WIDTH - margin - 1, margin, len, BIO_PRIMARY);
-
-    // Bottom-left
-    tft.drawFastHLine(margin, SCREEN_HEIGHT - margin - 1, len, BIO_PRIMARY);
-    tft.drawFastVLine(margin, SCREEN_HEIGHT - margin - len, len, BIO_PRIMARY);
-
-    // Bottom-right
-    tft.drawFastHLine(SCREEN_WIDTH - margin - len, SCREEN_HEIGHT - margin - 1, len, BIO_PRIMARY);
-    tft.drawFastVLine(SCREEN_WIDTH - margin - 1, SCREEN_HEIGHT - margin - len, len, BIO_PRIMARY);
-}
-
 // Draw ECG panel with animated waveform
 static void drawECGPanel(TFT_eSPI& tft) {
     // Draw panel border
@@ -258,7 +236,7 @@ static void drawDNAHelix(TFT_eSPI& tft) {
 
     // Draw the two strands and connecting bars
     for (int y = 0; y < BIO_DNA_HEIGHT; y += 3) {
-        float angle = bioState.dnaPhase + (y * 0.15f);
+        float angle = bioState.dnaPhase + (y * 0.08f);
 
         int x1 = centerX + (int)(sin(angle) * amplitude);
         int x2 = centerX + (int)(sin(angle + 3.14159f) * amplitude);
@@ -384,7 +362,6 @@ void renderBiometricScreenSaver(TFT_eSPI& tft) {
     if (!bioState.initialized) {
         initBiometricScreenSaver();
         tft.fillScreen(TFT_BLACK);
-        drawCornerBrackets(tft);
         drawBodyWireframe(tft);  // Static element, draw once
         bioState.initialized = true;
         bioState.lastUpdate = now;
