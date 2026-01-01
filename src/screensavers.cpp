@@ -1,5 +1,6 @@
 #include "screensavers.h"
 #include "layout.h"
+#include "spartan_image.h"
 #include <Arduino.h>
 
 // --- Matrix Screen Saver ---
@@ -266,49 +267,14 @@ static void drawDNAHelix(TFT_eSPI& tft) {
     }
 }
 
-// Draw simplified body wireframe silhouette
-static void drawBodyWireframe(TFT_eSPI& tft) {
-    int cx = BIO_BODY_X + BIO_BODY_WIDTH / 2;
-    int startY = BIO_BODY_Y + 5;
+// Draw Spartan armor image
+static void drawSpartanImage(TFT_eSPI& tft) {
+    // Center the image in the body panel area
+    int x = BIO_BODY_X + (BIO_BODY_WIDTH - SPARTAN_IMAGE_WIDTH) / 2;
+    int y = BIO_BODY_Y + (BIO_BODY_HEIGHT - SPARTAN_IMAGE_HEIGHT) / 2;
 
-    // Head (circle)
-    tft.drawCircle(cx, startY + 10, 10, BIO_PRIMARY);
-
-    // Neck
-    tft.drawLine(cx, startY + 20, cx, startY + 28, BIO_PRIMARY);
-
-    // Shoulders
-    tft.drawLine(cx - 25, startY + 30, cx + 25, startY + 30, BIO_PRIMARY);
-
-    // Arms
-    tft.drawLine(cx - 25, startY + 30, cx - 30, startY + 60, BIO_PRIMARY);  // Left upper
-    tft.drawLine(cx - 30, startY + 60, cx - 25, startY + 85, BIO_PRIMARY);  // Left lower
-    tft.drawLine(cx + 25, startY + 30, cx + 30, startY + 60, BIO_PRIMARY);  // Right upper
-    tft.drawLine(cx + 30, startY + 60, cx + 25, startY + 85, BIO_PRIMARY);  // Right lower
-
-    // Torso
-    tft.drawLine(cx - 20, startY + 30, cx - 15, startY + 70, BIO_PRIMARY);  // Left side
-    tft.drawLine(cx + 20, startY + 30, cx + 15, startY + 70, BIO_PRIMARY);  // Right side
-    tft.drawLine(cx - 15, startY + 70, cx + 15, startY + 70, BIO_PRIMARY);  // Waist
-
-    // Spine
-    tft.drawLine(cx, startY + 28, cx, startY + 70, BIO_SECONDARY);
-
-    // Legs
-    tft.drawLine(cx - 10, startY + 70, cx - 15, startY + 95, BIO_PRIMARY);   // Left upper
-    tft.drawLine(cx - 15, startY + 95, cx - 12, startY + 120, BIO_PRIMARY);  // Left lower
-    tft.drawLine(cx + 10, startY + 70, cx + 15, startY + 95, BIO_PRIMARY);   // Right upper
-    tft.drawLine(cx + 15, startY + 95, cx + 12, startY + 120, BIO_PRIMARY);  // Right lower
-
-    // Joints (small circles)
-    tft.fillCircle(cx - 25, startY + 30, 2, BIO_ACCENT);  // Left shoulder
-    tft.fillCircle(cx + 25, startY + 30, 2, BIO_ACCENT);  // Right shoulder
-    tft.fillCircle(cx - 30, startY + 60, 2, BIO_ACCENT);  // Left elbow
-    tft.fillCircle(cx + 30, startY + 60, 2, BIO_ACCENT);  // Right elbow
-    tft.fillCircle(cx - 10, startY + 70, 2, BIO_ACCENT);  // Left hip
-    tft.fillCircle(cx + 10, startY + 70, 2, BIO_ACCENT);  // Right hip
-    tft.fillCircle(cx - 15, startY + 95, 2, BIO_ACCENT);  // Left knee
-    tft.fillCircle(cx + 15, startY + 95, 2, BIO_ACCENT);  // Right knee
+    // Draw the image from PROGMEM
+    tft.pushImage(x, y, SPARTAN_IMAGE_WIDTH, SPARTAN_IMAGE_HEIGHT, spartan_image);
 }
 
 // Draw text labels and values
@@ -362,7 +328,7 @@ void renderBiometricScreenSaver(TFT_eSPI& tft) {
     if (!bioState.initialized) {
         initBiometricScreenSaver();
         tft.fillScreen(TFT_BLACK);
-        drawBodyWireframe(tft);  // Static element, draw once
+        drawSpartanImage(tft);  // Static element, draw once
         bioState.initialized = true;
         bioState.lastUpdate = now;
         bioState.lastValueChange = now;
