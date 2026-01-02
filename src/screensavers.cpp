@@ -140,20 +140,20 @@ void renderMatrixScreenSaver(TFT_eSPI& tft) {
 #define BIO_ACCENT 0x07EF       // Slightly different cyan for variety
 
 // Layout constants
-#define BIO_ECG_X 10
+#define BIO_ECG_X 20
 #define BIO_ECG_Y 30
 #define BIO_ECG_WIDTH 95
 #define BIO_ECG_HEIGHT 60
 
-#define BIO_DNA_X 115
-#define BIO_DNA_Y 25
+#define BIO_DNA_X 230
+#define BIO_DNA_Y 20
 #define BIO_DNA_WIDTH 70
 #define BIO_DNA_HEIGHT 110
 
-#define BIO_BODY_X 200
-#define BIO_BODY_Y 15
-#define BIO_BODY_WIDTH 110
-#define BIO_BODY_HEIGHT 130
+#define BIO_BODY_X 125
+#define BIO_BODY_Y 10
+#define BIO_BODY_WIDTH 90
+#define BIO_BODY_HEIGHT 150
 
 // ECG waveform pattern (one heartbeat cycle)
 // Values represent Y offset from baseline (negative = up)
@@ -179,6 +179,7 @@ struct BiometricState {
     unsigned long lastUpdate;
     unsigned long lastValueChange;
     bool initialized;
+    int bodyImage;
 };
 
 static BiometricState bioState;
@@ -186,7 +187,7 @@ static BiometricState bioState;
 // Draw ECG panel with animated waveform
 static void drawECGPanel(TFT_eSPI& tft) {
     // Draw panel border
-    tft.drawRect(BIO_ECG_X - 2, BIO_ECG_Y - 2, BIO_ECG_WIDTH + 4, BIO_ECG_HEIGHT + 4, BIO_SECONDARY);
+    // tft.drawRoundRect(BIO_ECG_X - 5, BIO_ECG_Y - 5, BIO_ECG_WIDTH + 20, BIO_ECG_HEIGHT + 44, 4, BIO_SECONDARY);
 
     // Clear ECG area
     tft.fillRect(BIO_ECG_X, BIO_ECG_Y, BIO_ECG_WIDTH, BIO_ECG_HEIGHT, TFT_BLACK);
@@ -230,7 +231,7 @@ static void drawDNAHelix(TFT_eSPI& tft) {
     tft.fillRect(BIO_DNA_X, BIO_DNA_Y, BIO_DNA_WIDTH, BIO_DNA_HEIGHT, TFT_BLACK);
 
     // Draw panel border
-    tft.drawRect(BIO_DNA_X - 2, BIO_DNA_Y - 2, BIO_DNA_WIDTH + 4, BIO_DNA_HEIGHT + 4, BIO_SECONDARY);
+    //tft.drawRect(BIO_DNA_X - 2, BIO_DNA_Y - 2, BIO_DNA_WIDTH + 4, BIO_DNA_HEIGHT + 4, BIO_SECONDARY);
 
     int centerX = BIO_DNA_X + BIO_DNA_WIDTH / 2;
     int amplitude = 25;
@@ -269,12 +270,18 @@ static void drawDNAHelix(TFT_eSPI& tft) {
 
 // Draw Spartan armor image
 static void drawSpartanImage(TFT_eSPI& tft) {
+    // Draw panel border
+    if(bioState.bodyImage == 0)
+        tft.drawRoundRect(BIO_BODY_X - 4, BIO_BODY_Y - 4, BIO_BODY_WIDTH + 8, BIO_BODY_HEIGHT + 8, 4, BIO_SECONDARY);
+    else
+        tft.drawRoundRect(BIO_BODY_X - 4, BIO_BODY_Y - 4, BIO_BODY_WIDTH + 8, BIO_BODY_HEIGHT + 8, 4, TFT_RED);
+
     // Center the image in the body panel area
     int x = BIO_BODY_X + (BIO_BODY_WIDTH - SPARTAN_IMAGE_WIDTH) / 2;
     int y = BIO_BODY_Y + (BIO_BODY_HEIGHT - SPARTAN_IMAGE_HEIGHT) / 2;
 
     // Draw the image from PROGMEM
-    tft.pushImage(x, y, SPARTAN_IMAGE_WIDTH, SPARTAN_IMAGE_HEIGHT, spartan_image);
+    tft.pushImage(x, y, SPARTAN_IMAGE_WIDTH, SPARTAN_IMAGE_HEIGHT, spartan_bitmaps[bioState.bodyImage]);
 }
 
 // Draw text labels and values
@@ -282,27 +289,26 @@ static void drawBioLabels(TFT_eSPI& tft) {
     // Heart rate label (below ECG)
     tft.setTextColor(BIO_PRIMARY, TFT_BLACK);
     tft.setTextSize(1);
-    tft.setCursor(BIO_ECG_X + 20, BIO_ECG_Y + BIO_ECG_HEIGHT + 10);
-    tft.print("HEART RATE:");
+    tft.setCursor(BIO_ECG_X + 25, BIO_ECG_Y + BIO_ECG_HEIGHT + 10);
+    tft.print("RATE:");
 
     // Heart rate value
-    tft.setCursor(BIO_ECG_X + 20, BIO_ECG_Y + BIO_ECG_HEIGHT + 22);
+    tft.setCursor(BIO_ECG_X + 55, BIO_ECG_Y + BIO_ECG_HEIGHT + 10);
     char hrStr[10];
     snprintf(hrStr, sizeof(hrStr), "%d BPM", bioState.heartRate);
     tft.print(hrStr);
 
     // Oxygen saturation (below DNA)
-    tft.setCursor(BIO_DNA_X + 5, BIO_DNA_Y + BIO_DNA_HEIGHT + 10);
-    tft.print("OXYGEN SAT:");
+    tft.setCursor(BIO_ECG_X + 6, BIO_ECG_Y + BIO_ECG_HEIGHT + 25);
+    tft.print("OXY SAT:");
 
-    tft.setCursor(BIO_DNA_X + 5, BIO_DNA_Y + BIO_DNA_HEIGHT + 22);
+    tft.setCursor(BIO_ECG_X + 56, BIO_ECG_Y + BIO_ECG_HEIGHT + 25);
     char o2Str[10];
     snprintf(o2Str, sizeof(o2Str), "%d%%", bioState.oxygenSat);
     tft.print(o2Str);
 
-    // Status label (below body)
-    tft.setCursor(BIO_BODY_X + 25, BIO_BODY_Y + BIO_BODY_HEIGHT + 5);
-    tft.print("STATUS: OK");
+    tft.setCursor(BIO_DNA_X + 5, BIO_DNA_Y + BIO_DNA_HEIGHT + 10);
+    tft.print("DNA ANALYSIS");
 }
 
 void initBiometricScreenSaver() {
@@ -313,6 +319,7 @@ void initBiometricScreenSaver() {
     bioState.oxygenSat = 98;
     bioState.lastUpdate = 0;
     bioState.lastValueChange = 0;
+    bioState.bodyImage = 0;
     bioState.initialized = false;
 
     // Initialize ECG buffer with baseline
@@ -357,6 +364,7 @@ void renderBiometricScreenSaver(TFT_eSPI& tft) {
     if (now - bioState.lastValueChange > 3000) {
         bioState.heartRate = 68 + random(10);     // 68-77 BPM
         bioState.oxygenSat = 96 + random(4);      // 96-99%
+        bioState.bodyImage = random(spartan_bitmaps_LEN);
         bioState.lastValueChange = now;
     }
 
@@ -364,6 +372,7 @@ void renderBiometricScreenSaver(TFT_eSPI& tft) {
     drawECGPanel(tft);
     drawDNAHelix(tft);
     drawBioLabels(tft);
+    drawSpartanImage(tft);
 
     tft.endWrite();
 }

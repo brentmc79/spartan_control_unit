@@ -20,7 +20,7 @@
 #define RECEIVER_TIMEOUT_MS 10000
 
 // Screen saver timing (milliseconds)
-#define SCREENSAVER_TIMEOUT_MS 10000
+#define SCREENSAVER_TIMEOUT_MS 3000
 
 // Safety shutdown animation timing (milliseconds)
 #define SHUTDOWN_FLASH_DURATION_MS 5000
@@ -28,12 +28,12 @@
 #define SHUTDOWN_FADE_DURATION_MS 5000
 
 // Menu button layout
-#define MENU_BTN_HEIGHT 35
+#define MENU_BTN_HEIGHT 25
 #define MENU_BTN_RADIUS 6
 #define MENU_BTN_GAP 7
 #define MENU_START_Y 5
 #define MENU_FONT_SIZE 2
-#define MENU_VIEWPORT_SIZE 4
+#define MENU_VIEWPORT_SIZE 5
 
 // Sidebar layout (positioned from right edge)
 #define SIDEBAR_WIDTH 85

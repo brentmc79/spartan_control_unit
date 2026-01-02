@@ -198,7 +198,7 @@ void MenuController::render() {
 
     tft.startWrite();
 
-    tft.fillScreen(HEX_BG);
+    tft.fillScreen(TFT_BLACK);
     renderMenuItems();
     renderSidebar();
 
@@ -237,8 +237,8 @@ void MenuController::renderMenuItems() {
         int viewportIndex = i - currentState.scrollOffset;
         int currentY = startY + (viewportIndex * (MENU_BTN_HEIGHT + gap));
 
-        uint16_t fillColor = isActive ? HEX_BORDER : HEX_MUTED;
-        uint16_t textColor = isActive ? HEX_BG : HEX_TEXT_PRI;
+        uint16_t fillColor = isActive ? HEX_BORDER : TFT_BLACK;
+        uint16_t textColor = isActive ? HEX_BG : HEX_MUTED;
 
         tft.fillRoundRect(startX + 2, currentY + 2, width - 4, MENU_BTN_HEIGHT - 4, MENU_BTN_RADIUS - 2, fillColor);
         tft.drawRoundRect(startX, currentY, width, MENU_BTN_HEIGHT, MENU_BTN_RADIUS, HEX_BORDER);
@@ -252,7 +252,7 @@ void MenuController::renderMenuItems() {
         if (item.type == MenuItemType::TOGGLE || item.type == MenuItemType::CYCLE) {
             label += ": " + String(item.options[item.currentOption]);
         }
-        String finalLabel = isActive ? "> " + label + " <" : label;
+        String finalLabel = label; //isActive ? "> " + label + " <" : label;
 
         tft.setTextColor(textColor);
         tft.setTextSize(MENU_FONT_SIZE);

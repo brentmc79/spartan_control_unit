@@ -99,6 +99,7 @@ void setupInterface() {
     
     tft.begin();
     tft.setRotation(3);
+    tft.setSwapBytes(true);
 
     // Initialize the menu system
     menuController = std::make_unique<MenuController>(mainMenuItems, mainMenuItemCount, tft);
