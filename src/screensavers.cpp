@@ -377,21 +377,360 @@ void renderBiometricScreenSaver(TFT_eSPI& tft) {
     tft.endWrite();
 }
 
-// --- Radar Screen Saver (placeholder) ---
+// --- Radar Screen Saver ---
+
+// Radar display colors (using cyan theme to match biometric screen saver)
+#define RADAR_PRIMARY BIO_PRIMARY       // Cyan (0x07FF)
+#define RADAR_DIM BIO_SECONDARY         // Dark cyan (0x0410)
+#define RADAR_VERY_DIM BIO_DIM          // Very dim cyan (0x0208)
+#define RADAR_SWEEP BIO_PRIMARY         // Bright cyan for sweep line
+#define RADAR_TARGET 0xFFE0             // Yellow for targets
+#define RADAR_TARGET_PULSE 0xFFFF       // White when pulsing
+
+// Radar layout constants
+#define RADAR_CENTER_X 160
+#define RADAR_CENTER_Y 165
+#define RADAR_RADIUS 120
+#define RADAR_INNER_RADIUS 20
+
+// Target constants
+#define MAX_TARGETS 3
+#define TARGET_SPAWN_CHANCE 150   // 1 in N chance per frame to spawn
+
+// Sweep parameters
+#define SWEEP_SPEED 1.5f          // Degrees per frame
+#define SWEEP_TRAIL_ANGLE 15.0f   // Degrees of fade trail behind sweep
+
+// Target structure
+struct RadarTarget {
+    float angle;          // Current angle in degrees (0-180)
+    float distance;       // Distance from center (0.0 to 1.0 normalized)
+    float speed;          // Movement speed (angle change per frame)
+    float distSpeed;      // Radial movement speed
+    bool active;          // Whether target is visible
+    bool pulsing;         // Whether currently intersected by sweep
+    uint8_t pulseCount;   // Pulse animation counter
+    int direction;        // 1 = moving right, -1 = moving left
+};
+
+// Radar state
+struct RadarState {
+    float sweepAngle;           // Current sweep angle (0-180)
+    int sweepDirection;         // 1 = sweeping right, -1 = sweeping left
+    RadarTarget targets[MAX_TARGETS];
+    unsigned long lastUpdate;
+    unsigned long lastDataChange;
+    bool initialized;
+    // Alphanumeric data
+    int contactCount;
+    int scanCycle;
+    float signalStrength;
+    int bearing;
+};
+
+static RadarState radarState;
+
+// Convert degrees to radians
+static float degToRad(float deg) {
+    return deg * 3.14159f / 180.0f;
+}
+
+// Draw radar arcs (range rings)
+static void drawRadarArcs(TFT_eSPI& tft) {
+    // Draw concentric arcs for range indication
+    for (int r = RADAR_INNER_RADIUS; r <= RADAR_RADIUS; r += 25) {
+        // Draw arc using line segments (semi-circle, 180 degrees)
+        for (int deg = 0; deg < 180; deg += 3) {
+            float rad = degToRad(deg);
+            int x = RADAR_CENTER_X + (int)(cos(rad) * r);
+            int y = RADAR_CENTER_Y - (int)(sin(rad) * r);
+            if (y >= 0 && y < SCREEN_HEIGHT) {
+                tft.drawPixel(x, y, RADAR_VERY_DIM);
+            }
+        }
+    }
+
+    // Draw radial lines at 45 degree intervals
+    for (int deg = 0; deg <= 180; deg += 45) {
+        float rad = degToRad(deg);
+        int x2 = RADAR_CENTER_X + (int)(cos(rad) * RADAR_RADIUS);
+        int y2 = RADAR_CENTER_Y - (int)(sin(rad) * RADAR_RADIUS);
+        tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, x2, y2, RADAR_VERY_DIM);
+    }
+
+    // Draw baseline (flat edge of semi-circle)
+    tft.drawFastHLine(RADAR_CENTER_X - RADAR_RADIUS, RADAR_CENTER_Y, RADAR_RADIUS * 2, RADAR_DIM);
+}
+
+// Draw sweep line with fade trail
+static void drawSweepLine(TFT_eSPI& tft) {
+    float sweepRad = degToRad(radarState.sweepAngle);
+
+    // Draw main sweep line
+    int x2 = RADAR_CENTER_X + (int)(cos(sweepRad) * RADAR_RADIUS);
+    int y2 = RADAR_CENTER_Y - (int)(sin(sweepRad) * RADAR_RADIUS);
+    tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, x2, y2, RADAR_SWEEP);
+
+    // Draw fade trail behind sweep
+    for (int i = 1; i <= 5; i++) {
+        float trailAngle = radarState.sweepAngle - (radarState.sweepDirection * i * 3.0f);
+        if (trailAngle < 0) trailAngle += 180;
+        if (trailAngle > 180) trailAngle -= 180;
+
+        float trailRad = degToRad(trailAngle);
+        int tx = RADAR_CENTER_X + (int)(cos(trailRad) * RADAR_RADIUS);
+        int ty = RADAR_CENTER_Y - (int)(sin(trailRad) * RADAR_RADIUS);
+
+        // Fade color based on distance from sweep
+        uint16_t fadeColor = (i <= 2) ? RADAR_DIM : RADAR_VERY_DIM;
+        if (ty >= 0 && ty < SCREEN_HEIGHT) {
+            tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, tx, ty, fadeColor);
+        }
+    }
+}
+
+// Draw targets on radar
+static void drawTargets(TFT_eSPI& tft) {
+    for (int i = 0; i < MAX_TARGETS; i++) {
+        RadarTarget& target = radarState.targets[i];
+        if (!target.active) continue;
+
+        float rad = degToRad(target.angle);
+        int dist = RADAR_INNER_RADIUS + (int)(target.distance * (RADAR_RADIUS - RADAR_INNER_RADIUS));
+        int x = RADAR_CENTER_X + (int)(cos(rad) * dist);
+        int y = RADAR_CENTER_Y - (int)(sin(rad) * dist);
+
+        // Check bounds
+        if (y < 0 || y >= SCREEN_HEIGHT) continue;
+
+        // Determine color based on pulse state
+        uint16_t color;
+        if (target.pulsing && (target.pulseCount % 4 < 2)) {
+            color = RADAR_TARGET_PULSE;
+        } else {
+            color = RADAR_TARGET;
+        }
+
+        // Draw target blip (small cross/diamond)
+        tft.drawPixel(x, y, color);
+        tft.drawPixel(x - 1, y, color);
+        tft.drawPixel(x + 1, y, color);
+        tft.drawPixel(x, y - 1, color);
+        tft.drawPixel(x, y + 1, color);
+
+        // Larger indicator when pulsing
+        if (target.pulsing) {
+            tft.drawPixel(x - 2, y, color);
+            tft.drawPixel(x + 2, y, color);
+            tft.drawPixel(x, y - 2, color);
+            tft.drawPixel(x, y + 2, color);
+        }
+    }
+}
+
+// Draw left panel with alphanumeric data
+static void drawLeftPanel(TFT_eSPI& tft) {
+    int panelX = 5;
+    int panelY = 10;
+
+    tft.setTextColor(RADAR_PRIMARY, TFT_BLACK);
+    tft.setTextSize(1);
+
+    // Title
+    tft.setCursor(panelX, panelY);
+    tft.print("TACTICAL");
+
+    // Scan cycle
+    tft.setCursor(panelX, panelY + 15);
+    tft.print("SCAN:");
+    char scanStr[8];
+    snprintf(scanStr, sizeof(scanStr), "%04d", radarState.scanCycle);
+    tft.setCursor(panelX, panelY + 25);
+    tft.print(scanStr);
+
+    // Contact count
+    tft.setCursor(panelX, panelY + 45);
+    tft.print("CONTACTS");
+    tft.setCursor(panelX, panelY + 55);
+    char contactStr[4];
+    snprintf(contactStr, sizeof(contactStr), "%d", radarState.contactCount);
+    tft.print(contactStr);
+
+    // Mode indicator
+    tft.setCursor(panelX, panelY + 75);
+    tft.print("MODE:");
+    tft.setCursor(panelX, panelY + 85);
+    tft.print("SWEEP");
+
+    // Draw border line
+    tft.drawFastVLine(panelX + 48, panelY, 95, RADAR_VERY_DIM);
+}
+
+// Draw right panel with alphanumeric data
+static void drawRightPanel(TFT_eSPI& tft) {
+    int panelX = 265;
+    int panelY = 10;
+
+    tft.setTextColor(RADAR_PRIMARY, TFT_BLACK);
+    tft.setTextSize(1);
+
+    // Title
+    tft.setCursor(panelX, panelY);
+    tft.print("STATUS");
+
+    // Signal strength
+    tft.setCursor(panelX, panelY + 15);
+    tft.print("SIG:");
+    char sigStr[8];
+    snprintf(sigStr, sizeof(sigStr), "%.1f%%", radarState.signalStrength);
+    tft.setCursor(panelX, panelY + 25);
+    tft.print(sigStr);
+
+    // Bearing
+    tft.setCursor(panelX, panelY + 45);
+    tft.print("BEARING");
+    tft.setCursor(panelX, panelY + 55);
+    char bearStr[8];
+    snprintf(bearStr, sizeof(bearStr), "%03d", radarState.bearing);
+    tft.print(bearStr);
+    tft.print((char)247);  // Degree symbol
+
+    // Range indicator
+    tft.setCursor(panelX, panelY + 75);
+    tft.print("RANGE:");
+    tft.setCursor(panelX, panelY + 85);
+    tft.print("500M");
+
+    // Draw border line
+    tft.drawFastVLine(panelX - 5, panelY, 95, RADAR_VERY_DIM);
+}
+
+// Update target states
+static void updateTargets() {
+    int activeCount = 0;
+
+    for (int i = 0; i < MAX_TARGETS; i++) {
+        RadarTarget& target = radarState.targets[i];
+
+        if (target.active) {
+            activeCount++;
+
+            // Move target
+            target.angle += target.speed * target.direction;
+            target.distance += target.distSpeed;
+
+            // Check if target is out of bounds
+            if (target.angle < 0 || target.angle > 180 ||
+                target.distance < 0 || target.distance > 1.0f) {
+                target.active = false;
+                activeCount--;
+            }
+
+            // Check for sweep intersection (within 5 degrees)
+            float angleDiff = abs(target.angle - radarState.sweepAngle);
+            if (angleDiff < 5.0f) {
+                target.pulsing = true;
+                target.pulseCount++;
+            } else {
+                target.pulsing = false;
+                target.pulseCount = 0;
+            }
+        }
+    }
+
+    radarState.contactCount = activeCount;
+
+    // Randomly spawn new targets
+    if (random(TARGET_SPAWN_CHANCE) == 0) {
+        for (int i = 0; i < MAX_TARGETS; i++) {
+            if (!radarState.targets[i].active) {
+                RadarTarget& target = radarState.targets[i];
+                target.active = true;
+                target.direction = (random(2) == 0) ? 1 : -1;
+                target.angle = (target.direction == 1) ? 5.0f : 175.0f;
+                target.distance = 0.3f + (random(50) / 100.0f);  // 0.3 to 0.8
+                target.speed = 0.3f + (random(30) / 100.0f);     // 0.3 to 0.6
+                target.distSpeed = (random(20) - 10) / 500.0f;   // Small radial drift
+                target.pulsing = false;
+                target.pulseCount = 0;
+                break;  // Only spawn one at a time
+            }
+        }
+    }
+}
 
 void initRadarScreenSaver() {
-    // TODO: Initialize radar animation state
+    radarState.sweepAngle = 90.0f;
+    radarState.sweepDirection = 1;
+    radarState.lastUpdate = 0;
+    radarState.lastDataChange = 0;
+    radarState.initialized = false;
+    radarState.contactCount = 0;
+    radarState.scanCycle = 0;
+    radarState.signalStrength = 98.5f;
+    radarState.bearing = 0;
+
+    // Initialize all targets as inactive
+    for (int i = 0; i < MAX_TARGETS; i++) {
+        radarState.targets[i].active = false;
+        radarState.targets[i].pulsing = false;
+        radarState.targets[i].pulseCount = 0;
+    }
 }
 
 void renderRadarScreenSaver(TFT_eSPI& tft) {
-    // Placeholder - just show text for now
-    static bool initialized = false;
-    if (!initialized) {
+    unsigned long now = millis();
+
+    // First-time initialization
+    if (!radarState.initialized) {
+        initRadarScreenSaver();
         tft.fillScreen(TFT_BLACK);
-        tft.setTextColor(TFT_GREEN);
-        tft.setTextSize(2);
-        tft.setCursor(110, 75);
-        tft.print("RADAR");
-        initialized = true;
+        radarState.initialized = true;
+        radarState.lastUpdate = now;
+        radarState.lastDataChange = now;
     }
+
+    // Update at ~30fps (every 33ms)
+    if (now - radarState.lastUpdate < 33) {
+        return;
+    }
+    radarState.lastUpdate = now;
+
+    tft.startWrite();
+
+    // Clear radar area (preserve side panels partially)
+    tft.fillRect(55, 0, 210, SCREEN_HEIGHT, TFT_BLACK);
+
+    // Update sweep angle
+    radarState.sweepAngle += SWEEP_SPEED * radarState.sweepDirection;
+    if (radarState.sweepAngle >= 180.0f) {
+        radarState.sweepAngle = 180.0f;
+        radarState.sweepDirection = -1;
+        radarState.scanCycle++;
+    } else if (radarState.sweepAngle <= 0.0f) {
+        radarState.sweepAngle = 0.0f;
+        radarState.sweepDirection = 1;
+        radarState.scanCycle++;
+    }
+
+    // Update bearing to follow sweep
+    radarState.bearing = (int)radarState.sweepAngle;
+
+    // Update targets
+    updateTargets();
+
+    // Occasionally vary signal strength for realism
+    if (now - radarState.lastDataChange > 2000) {
+        radarState.signalStrength = 95.0f + (random(50) / 10.0f);  // 95.0 to 100.0
+        radarState.lastDataChange = now;
+    }
+
+    // Render radar elements
+    drawRadarArcs(tft);
+    drawSweepLine(tft);
+    drawTargets(tft);
+    drawLeftPanel(tft);
+    drawRightPanel(tft);
+
+    tft.endWrite();
 }

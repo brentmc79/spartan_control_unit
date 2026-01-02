@@ -7,8 +7,8 @@
 #define LCD_RST   4 // ESP32 D4
 #define LCD_BLK  32 // ESP32 D32
 
-#define BUTTON_1 12
-#define BUTTON_2 13
+#define BUTTON_1 13
+#define BUTTON_2 12
 #define BUTTON_3 14
 
 #define LED_DATA 8 // GPIO for addressable LEDs (primary)
