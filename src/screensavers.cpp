@@ -557,7 +557,7 @@ static void drawBorders(TFT_eSprite& spr) {
     spr.drawRoundRect(1, 1, RADAR_SPRITE_WIDTH-2, RADAR_SPRITE_HEIGHT-2, 4, RADAR_PRIMARY);
 }
 
-// Draw left panel with alphanumeric data
+// Draw left panel with alphanumeric data (draws directly to TFT)
 static void drawLeftPanel(TFT_eSPI& tft) {
     int panelX = 5;
     int panelY = 20;
@@ -592,17 +592,33 @@ static void drawLeftPanel(TFT_eSPI& tft) {
     tft.print("SWEEP");
 
     // Draw border line
-    tft.drawFastVLine(RADAR_LEFT_BORDER, panelY, 95, RADAR_VERY_DIM);
+    tft.drawFastVLine(RADAR_LEFT_BORDER - 2, panelY, 95, RADAR_VERY_DIM);
 }
 
-// Draw right panel with alphanumeric data
+// Draw right panel with alphanumeric data (draws directly to TFT)
 static void drawRightPanel(TFT_eSPI& tft) {
     int panelX = RADAR_RIGHT_BORDER + 5;
     int panelY = 20;
     int cursorY = panelY + 10;
     int textHeight = 10;
 
-    tft.drawRoundRect(panelX - 10, panelY, SCREEN_WIDTH - panelX + 9, 120, 4, RADAR_DIM);
+    // Draw border with top/right/bottom edges, arcs rotated 90 degrees
+    int leftX = RADAR_RIGHT_BORDER + 2;
+    int rightX = SCREEN_WIDTH - 3;
+    int topY = panelY;
+    int bottomY = panelY + 119;
+    int radius = 4;
+
+    // Top horizontal line
+    tft.drawFastHLine(leftX, topY, rightX - leftX - radius + 1, RADAR_DIM);
+    // Top arc (cornername 8 = top-left quadrant, rotated 90° from top-right)
+    tft.drawCircleHelper(rightX - radius, topY + radius, radius, 2, RADAR_DIM);
+    // Right vertical line (between the two arcs)
+    tft.drawFastVLine(rightX, topY + radius, bottomY - topY - 2 * radius + 1, RADAR_DIM);
+    // Bottom arc (cornername 4 = bottom-left quadrant, rotated 90° from bottom-right)
+    tft.drawCircleHelper(rightX - radius, bottomY - radius, radius, 4, RADAR_DIM);
+    // Bottom horizontal line
+    tft.drawFastHLine(leftX, bottomY, rightX - leftX - radius + 1, RADAR_DIM);
 
     tft.setTextColor(RADAR_DIM, TFT_BLACK);
     tft.setTextSize(1);
@@ -612,30 +628,27 @@ static void drawRightPanel(TFT_eSPI& tft) {
     tft.print("STATUS");
 
     // Signal strength
-    tft.setCursor(panelX, cursorY+=(textHeight+10));
+    tft.setCursor(panelX, cursorY += (textHeight + 10));
     tft.print("SIG:");
     char sigStr[8];
     snprintf(sigStr, sizeof(sigStr), "%.1f%%", radarState.signalStrength);
-    tft.setCursor(panelX, cursorY+=textHeight);
+    tft.setCursor(panelX, cursorY += textHeight);
     tft.print(sigStr);
 
     // Bearing
-    tft.setCursor(panelX, cursorY+=textHeight+10);
+    tft.setCursor(panelX, cursorY += textHeight + 10);
     tft.print("BEARING");
-    tft.setCursor(panelX, cursorY+=textHeight);
+    tft.setCursor(panelX, cursorY += textHeight);
     char bearStr[8];
     snprintf(bearStr, sizeof(bearStr), "%03d", radarState.bearing);
     tft.print(bearStr);
     tft.print((char)247);  // Degree symbol
 
     // Range indicator
-    tft.setCursor(panelX, cursorY+=textHeight+10);
+    tft.setCursor(panelX, cursorY += textHeight + 10);
     tft.print("RANGE:");
-    tft.setCursor(panelX, cursorY+=textHeight);
+    tft.setCursor(panelX, cursorY += textHeight);
     tft.print("500M");
-
-    // Draw border line
-    // tft.drawFastVLine(RADAR_RIGHT_BORDER, panelY, 95, RADAR_VERY_DIM);
 }
 
 // Update target states
@@ -726,10 +739,15 @@ void renderRadarScreenSaver(TFT_eSPI& tft) {
         initRadarScreenSaver();
         tft.fillScreen(TFT_BLACK);
 
-        // Create sprite for radar area
+        // Create sprite for radar area only (side panels draw directly to TFT)
+        // Using 8-bit color depth to reduce memory (~35KB instead of ~70KB)
         radarSprite = new TFT_eSprite(&tft);
-        radarSprite->setColorDepth(16);
-        radarSprite->createSprite(RADAR_SPRITE_WIDTH, RADAR_SPRITE_HEIGHT);
+        radarSprite->setColorDepth(8);
+        if (!radarSprite->createSprite(RADAR_SPRITE_WIDTH, RADAR_SPRITE_HEIGHT)) {
+            // Sprite creation failed - fall back to no sprite
+            delete radarSprite;
+            radarSprite = nullptr;
+        }
 
         radarState.initialized = true;
         radarState.lastUpdate = now;
@@ -766,19 +784,22 @@ void renderRadarScreenSaver(TFT_eSPI& tft) {
         radarState.lastDataChange = now;
     }
 
-    // Draw side panels directly to TFT (they don't need sprite buffering)
+    // Only use sprite if it was successfully created
+    if (radarSprite != nullptr) {
+        // Clear sprite and draw radar elements to it
+        radarSprite->fillSprite(TFT_BLACK);
+        drawRadarArcs(*radarSprite);
+        drawSweepLine(*radarSprite);
+        drawTargets(*radarSprite);
+        drawBorders(*radarSprite);
+
+        // Push sprite to display at radar area position
+        radarSprite->pushSprite(RADAR_LEFT_BORDER, 0);
+    }
+
+    // Draw side panels directly to TFT (no sprite needed - static content)
     tft.startWrite();
     drawLeftPanel(tft);
     drawRightPanel(tft);
     tft.endWrite();
-
-    // Clear sprite and draw radar elements to it
-    radarSprite->fillSprite(TFT_BLACK);
-    drawRadarArcs(*radarSprite);
-    drawSweepLine(*radarSprite);
-    drawTargets(*radarSprite);
-    drawBorders(*radarSprite);
-
-    // Push sprite to display at radar area position
-    radarSprite->pushSprite(RADAR_LEFT_BORDER, 0);
 }
