@@ -394,9 +394,9 @@ void renderBiometricScreenSaver(TFT_eSPI& tft) {
 #define RADAR_SPRITE_HEIGHT SCREEN_HEIGHT
 
 // Radar layout constants (sprite-local coordinates)
-#define RADAR_CENTER_X_LOCAL (160 - RADAR_LEFT_BORDER)  // Center X within sprite
-#define RADAR_CENTER_Y_LOCAL 140
-#define RADAR_RADIUS 120
+#define RADAR_CENTER_X_LOCAL (RADAR_SPRITE_WIDTH / 2)   // Center X within sprite
+#define RADAR_CENTER_Y_LOCAL (RADAR_SPRITE_HEIGHT - 5)  // 5px above sprite bottom
+#define RADAR_RADIUS (RADAR_SPRITE_HEIGHT - 5)          // Extends to sprite top
 #define RADAR_INNER_RADIUS 20
 
 // Target constants
@@ -444,6 +444,43 @@ static float degToRad(float deg) {
     return deg * 3.14159f / 180.0f;
 }
 
+// Clip a line from center to (x2,y2) to sprite bounds, returning the clipped endpoint
+static void clipLineToSprite(int cx, int cy, int& x2, int& y2) {
+    // Calculate direction vector
+    float dx = x2 - cx;
+    float dy = y2 - cy;
+
+    // Find the smallest t value where line intersects a boundary
+    float t = 1.0f;
+
+    // Check right boundary
+    if (dx > 0 && x2 >= RADAR_SPRITE_WIDTH) {
+        float t_right = (RADAR_SPRITE_WIDTH - 1 - cx) / dx;
+        if (t_right < t) t = t_right;
+    }
+    // Check left boundary
+    if (dx < 0 && x2 < 0) {
+        float t_left = -cx / dx;
+        if (t_left < t) t = t_left;
+    }
+    // Check top boundary
+    if (dy < 0 && y2 < 0) {
+        float t_top = -cy / dy;
+        if (t_top < t) t = t_top;
+    }
+    // Check bottom boundary
+    if (dy > 0 && y2 >= RADAR_SPRITE_HEIGHT) {
+        float t_bottom = (RADAR_SPRITE_HEIGHT - 1 - cy) / dy;
+        if (t_bottom < t) t = t_bottom;
+    }
+
+    // Apply clipping
+    if (t < 1.0f) {
+        x2 = cx + (int)(dx * t);
+        y2 = cy + (int)(dy * t);
+    }
+}
+
 // Draw radar arcs (range rings) - draws to sprite with local coordinates
 static void drawRadarArcs(TFT_eSprite& spr) {
     // Draw concentric arcs for range indication
@@ -464,9 +501,7 @@ static void drawRadarArcs(TFT_eSprite& spr) {
         float rad = degToRad(deg);
         int x2 = RADAR_CENTER_X_LOCAL + (int)(cos(rad) * RADAR_RADIUS);
         int y2 = RADAR_CENTER_Y_LOCAL - (int)(sin(rad) * RADAR_RADIUS);
-        // Clamp to sprite bounds
-        if (x2 < 0) x2 = 0;
-        else if (x2 >= RADAR_SPRITE_WIDTH) x2 = RADAR_SPRITE_WIDTH - 1;
+        clipLineToSprite(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, x2, y2);
         spr.drawLine(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, x2, y2, RADAR_VERY_DIM);
     }
 
@@ -481,28 +516,22 @@ static void drawSweepLine(TFT_eSprite& spr) {
     // Draw main sweep line
     int x2 = RADAR_CENTER_X_LOCAL + (int)(cos(sweepRad) * RADAR_RADIUS);
     int y2 = RADAR_CENTER_Y_LOCAL - (int)(sin(sweepRad) * RADAR_RADIUS);
-    // Clamp to sprite bounds
-    if (x2 < 0) x2 = 0;
-    else if (x2 >= RADAR_SPRITE_WIDTH) x2 = RADAR_SPRITE_WIDTH - 1;
+    clipLineToSprite(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, x2, y2);
     spr.drawLine(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, x2, y2, RADAR_SWEEP);
 
     // Draw fade trail behind sweep
-    for (int i = 1; i <= 5; i++) {
-        float trailAngle = radarState.sweepAngle - (radarState.sweepDirection * i * 3.0f);
+    for (int i = 1; i <= 4; i++) {
+        float trailAngle = radarState.sweepAngle - (radarState.sweepDirection * i * 6.0f);
 
         if (trailAngle > 0 && trailAngle < 180) {
             float trailRad = degToRad(trailAngle);
             int tx = RADAR_CENTER_X_LOCAL + (int)(cos(trailRad) * RADAR_RADIUS);
             int ty = RADAR_CENTER_Y_LOCAL - (int)(sin(trailRad) * RADAR_RADIUS);
-            // Clamp to sprite bounds
-            if (tx < 0) tx = 0;
-            else if (tx >= RADAR_SPRITE_WIDTH) tx = RADAR_SPRITE_WIDTH - 1;
+            clipLineToSprite(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, tx, ty);
 
             // Fade color based on distance from sweep
             uint16_t fadeColor = (i <= 2) ? RADAR_DIM : RADAR_VERY_DIM;
-            if (ty >= 0 && ty < RADAR_SPRITE_HEIGHT) {
-                spr.drawLine(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, tx, ty, fadeColor);
-            }
+            spr.drawLine(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, tx, ty, fadeColor);
         }
     }
 }
