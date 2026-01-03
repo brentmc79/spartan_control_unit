@@ -548,12 +548,21 @@ static void drawTargets(TFT_eSprite& spr) {
     }
 }
 
+// Draw borders on radar - draws to sprite with local coordinates
+static void drawBorders(TFT_eSprite& spr) {
+    spr.drawRect(0, 0, RADAR_SPRITE_WIDTH, RADAR_SPRITE_HEIGHT, TFT_BLACK);
+    spr.drawRoundRect(1, 1, RADAR_SPRITE_WIDTH-1, RADAR_SPRITE_HEIGHT-1, 6, RADAR_DIM);
+    spr.drawRect(1, 1, RADAR_SPRITE_WIDTH-2, RADAR_SPRITE_HEIGHT-2, TFT_BLACK);
+    spr.drawRect(2, 2, RADAR_SPRITE_WIDTH-4, RADAR_SPRITE_HEIGHT-4, TFT_BLACK);
+    spr.drawRoundRect(1, 1, RADAR_SPRITE_WIDTH-2, RADAR_SPRITE_HEIGHT-2, 4, RADAR_PRIMARY);
+}
+
 // Draw left panel with alphanumeric data
 static void drawLeftPanel(TFT_eSPI& tft) {
     int panelX = 5;
-    int panelY = 10;
+    int panelY = 20;
 
-    tft.setTextColor(RADAR_PRIMARY, TFT_BLACK);
+    tft.setTextColor(RADAR_DIM, TFT_BLACK);
     tft.setTextSize(1);
 
     // Title
@@ -568,9 +577,9 @@ static void drawLeftPanel(TFT_eSPI& tft) {
     tft.setCursor(panelX, panelY + 25);
     tft.print(scanStr);
 
-    // Contact count
+    // Target count
     tft.setCursor(panelX, panelY + 45);
-    tft.print("CONTACTS");
+    tft.print("TARGETS");
     tft.setCursor(panelX, panelY + 55);
     char contactStr[4];
     snprintf(contactStr, sizeof(contactStr), "%d", radarState.contactCount);
@@ -588,41 +597,45 @@ static void drawLeftPanel(TFT_eSPI& tft) {
 
 // Draw right panel with alphanumeric data
 static void drawRightPanel(TFT_eSPI& tft) {
-    int panelX = 265;
-    int panelY = 10;
+    int panelX = RADAR_RIGHT_BORDER + 5;
+    int panelY = 20;
+    int cursorY = panelY + 10;
+    int textHeight = 10;
 
-    tft.setTextColor(RADAR_PRIMARY, TFT_BLACK);
+    tft.drawRoundRect(panelX - 10, panelY, SCREEN_WIDTH - panelX + 9, 120, 4, RADAR_DIM);
+
+    tft.setTextColor(RADAR_DIM, TFT_BLACK);
     tft.setTextSize(1);
 
     // Title
-    tft.setCursor(panelX, panelY);
+    tft.setCursor(panelX, cursorY);
     tft.print("STATUS");
 
     // Signal strength
-    tft.setCursor(panelX, panelY + 15);
+    tft.setCursor(panelX, cursorY+=(textHeight+10));
     tft.print("SIG:");
     char sigStr[8];
     snprintf(sigStr, sizeof(sigStr), "%.1f%%", radarState.signalStrength);
-    tft.setCursor(panelX, panelY + 25);
+    tft.setCursor(panelX, cursorY+=textHeight);
     tft.print(sigStr);
 
     // Bearing
-    tft.setCursor(panelX, panelY + 45);
+    tft.setCursor(panelX, cursorY+=textHeight+10);
     tft.print("BEARING");
-    tft.setCursor(panelX, panelY + 55);
+    tft.setCursor(panelX, cursorY+=textHeight);
     char bearStr[8];
     snprintf(bearStr, sizeof(bearStr), "%03d", radarState.bearing);
     tft.print(bearStr);
     tft.print((char)247);  // Degree symbol
 
     // Range indicator
-    tft.setCursor(panelX, panelY + 75);
+    tft.setCursor(panelX, cursorY+=textHeight+10);
     tft.print("RANGE:");
-    tft.setCursor(panelX, panelY + 85);
+    tft.setCursor(panelX, cursorY+=textHeight);
     tft.print("500M");
 
     // Draw border line
-    tft.drawFastVLine(RADAR_RIGHT_BORDER, panelY, 95, RADAR_VERY_DIM);
+    // tft.drawFastVLine(RADAR_RIGHT_BORDER, panelY, 95, RADAR_VERY_DIM);
 }
 
 // Update target states
@@ -753,18 +766,19 @@ void renderRadarScreenSaver(TFT_eSPI& tft) {
         radarState.lastDataChange = now;
     }
 
-    // Clear sprite and draw radar elements to it
-    radarSprite->fillSprite(TFT_BLACK);
-    drawRadarArcs(*radarSprite);
-    drawSweepLine(*radarSprite);
-    drawTargets(*radarSprite);
-
-    // Push sprite to display at radar area position
-    radarSprite->pushSprite(RADAR_LEFT_BORDER, 0);
-
     // Draw side panels directly to TFT (they don't need sprite buffering)
     tft.startWrite();
     drawLeftPanel(tft);
     drawRightPanel(tft);
     tft.endWrite();
+
+    // Clear sprite and draw radar elements to it
+    radarSprite->fillSprite(TFT_BLACK);
+    drawRadarArcs(*radarSprite);
+    drawSweepLine(*radarSprite);
+    drawTargets(*radarSprite);
+    drawBorders(*radarSprite);
+
+    // Push sprite to display at radar area position
+    radarSprite->pushSprite(RADAR_LEFT_BORDER, 0);
 }
