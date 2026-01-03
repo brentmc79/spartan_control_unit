@@ -389,9 +389,11 @@ void renderBiometricScreenSaver(TFT_eSPI& tft) {
 
 // Radar layout constants
 #define RADAR_CENTER_X 160
-#define RADAR_CENTER_Y 165
+#define RADAR_CENTER_Y 140
 #define RADAR_RADIUS 120
 #define RADAR_INNER_RADIUS 20
+#define RADAR_LEFT_BORDER 55
+#define RADAR_RIGHT_BORDER 264
 
 // Target constants
 #define MAX_TARGETS 3
@@ -444,7 +446,7 @@ static void drawRadarArcs(TFT_eSPI& tft) {
             float rad = degToRad(deg);
             int x = RADAR_CENTER_X + (int)(cos(rad) * r);
             int y = RADAR_CENTER_Y - (int)(sin(rad) * r);
-            if (y >= 0 && y < SCREEN_HEIGHT) {
+            if (y >= 0 && y < SCREEN_HEIGHT && x > RADAR_LEFT_BORDER && x < RADAR_RIGHT_BORDER) {
                 tft.drawPixel(x, y, RADAR_VERY_DIM);
             }
         }
@@ -455,11 +457,16 @@ static void drawRadarArcs(TFT_eSPI& tft) {
         float rad = degToRad(deg);
         int x2 = RADAR_CENTER_X + (int)(cos(rad) * RADAR_RADIUS);
         int y2 = RADAR_CENTER_Y - (int)(sin(rad) * RADAR_RADIUS);
+        if (x2 < RADAR_LEFT_BORDER) {
+            x2 = RADAR_LEFT_BORDER;
+        } else if (x2 > RADAR_RIGHT_BORDER) {
+            x2 = RADAR_RIGHT_BORDER;
+        }
         tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, x2, y2, RADAR_VERY_DIM);
     }
 
     // Draw baseline (flat edge of semi-circle)
-    tft.drawFastHLine(RADAR_CENTER_X - RADAR_RADIUS, RADAR_CENTER_Y, RADAR_RADIUS * 2, RADAR_DIM);
+    tft.drawFastHLine(RADAR_LEFT_BORDER, RADAR_CENTER_Y, RADAR_RIGHT_BORDER - RADAR_LEFT_BORDER, RADAR_DIM);
 }
 
 // Draw sweep line with fade trail
@@ -469,22 +476,39 @@ static void drawSweepLine(TFT_eSPI& tft) {
     // Draw main sweep line
     int x2 = RADAR_CENTER_X + (int)(cos(sweepRad) * RADAR_RADIUS);
     int y2 = RADAR_CENTER_Y - (int)(sin(sweepRad) * RADAR_RADIUS);
+    if (x2 < RADAR_LEFT_BORDER) {
+        x2 = RADAR_LEFT_BORDER;
+    } else if (x2 > RADAR_RIGHT_BORDER) {
+        x2 = RADAR_RIGHT_BORDER;
+    }
     tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, x2, y2, RADAR_SWEEP);
 
     // Draw fade trail behind sweep
     for (int i = 1; i <= 5; i++) {
         float trailAngle = radarState.sweepAngle - (radarState.sweepDirection * i * 3.0f);
-        if (trailAngle < 0) trailAngle += 180;
-        if (trailAngle > 180) trailAngle -= 180;
+        //if (trailAngle < 0) trailAngle += 180;
+        //if (trailAngle > 180) trailAngle -= 180;
 
-        float trailRad = degToRad(trailAngle);
-        int tx = RADAR_CENTER_X + (int)(cos(trailRad) * RADAR_RADIUS);
-        int ty = RADAR_CENTER_Y - (int)(sin(trailRad) * RADAR_RADIUS);
+        if (trailAngle > 0 && trailAngle < 180) {
+            float trailRad = degToRad(trailAngle);
+            int tx = RADAR_CENTER_X + (int)(cos(trailRad) * RADAR_RADIUS);
+            int ty = RADAR_CENTER_Y - (int)(sin(trailRad) * RADAR_RADIUS);
+            if (tx < RADAR_LEFT_BORDER) {
+                tx = RADAR_LEFT_BORDER;
+            } else if (tx > RADAR_RIGHT_BORDER) {
+                tx = RADAR_RIGHT_BORDER;
+            }
 
-        // Fade color based on distance from sweep
-        uint16_t fadeColor = (i <= 2) ? RADAR_DIM : RADAR_VERY_DIM;
-        if (ty >= 0 && ty < SCREEN_HEIGHT) {
-            tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, tx, ty, fadeColor);
+            // Fade color based on distance from sweep
+            uint16_t fadeColor = (i <= 2) ? RADAR_DIM : RADAR_VERY_DIM;
+            if (ty >= 0 && ty < SCREEN_HEIGHT) {
+                if (tx < RADAR_LEFT_BORDER) {
+                    tx = RADAR_LEFT_BORDER;
+                } else if (tx > RADAR_RIGHT_BORDER) {
+                    tx = RADAR_RIGHT_BORDER;
+                }
+                tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, tx, ty, fadeColor);
+            }
         }
     }
 }
@@ -512,18 +536,20 @@ static void drawTargets(TFT_eSPI& tft) {
         }
 
         // Draw target blip (small cross/diamond)
-        tft.drawPixel(x, y, color);
-        tft.drawPixel(x - 1, y, color);
-        tft.drawPixel(x + 1, y, color);
-        tft.drawPixel(x, y - 1, color);
-        tft.drawPixel(x, y + 1, color);
+        if (x > RADAR_LEFT_BORDER+1 && x < RADAR_RIGHT_BORDER-1) {
+            tft.drawPixel(x, y, color);
+            tft.drawPixel(x - 1, y, color);
+            tft.drawPixel(x + 1, y, color);
+            tft.drawPixel(x, y - 1, color);
+            tft.drawPixel(x, y + 1, color);
 
-        // Larger indicator when pulsing
-        if (target.pulsing) {
-            tft.drawPixel(x - 2, y, color);
-            tft.drawPixel(x + 2, y, color);
-            tft.drawPixel(x, y - 2, color);
-            tft.drawPixel(x, y + 2, color);
+            // Larger indicator when pulsing
+            if (target.pulsing) {
+                tft.drawPixel(x - 2, y, color);
+                tft.drawPixel(x + 2, y, color);
+                tft.drawPixel(x, y - 2, color);
+                tft.drawPixel(x, y + 2, color);
+            }
         }
     }
 }
@@ -563,7 +589,7 @@ static void drawLeftPanel(TFT_eSPI& tft) {
     tft.print("SWEEP");
 
     // Draw border line
-    tft.drawFastVLine(panelX + 48, panelY, 95, RADAR_VERY_DIM);
+    tft.drawFastVLine(RADAR_LEFT_BORDER, panelY, 95, RADAR_VERY_DIM);
 }
 
 // Draw right panel with alphanumeric data
@@ -602,7 +628,7 @@ static void drawRightPanel(TFT_eSPI& tft) {
     tft.print("500M");
 
     // Draw border line
-    tft.drawFastVLine(panelX - 5, panelY, 95, RADAR_VERY_DIM);
+    tft.drawFastVLine(RADAR_RIGHT_BORDER, panelY, 95, RADAR_VERY_DIM);
 }
 
 // Update target states
@@ -703,12 +729,12 @@ void renderRadarScreenSaver(TFT_eSPI& tft) {
 
     // Update sweep angle
     radarState.sweepAngle += SWEEP_SPEED * radarState.sweepDirection;
-    if (radarState.sweepAngle >= 180.0f) {
-        radarState.sweepAngle = 180.0f;
+    if (radarState.sweepAngle >= 179.0f) {
+        radarState.sweepAngle = 179.0f;
         radarState.sweepDirection = -1;
         radarState.scanCycle++;
-    } else if (radarState.sweepAngle <= 0.0f) {
-        radarState.sweepAngle = 0.0f;
+    } else if (radarState.sweepAngle <= 1.0f) {
+        radarState.sweepAngle = 1.0f;
         radarState.sweepDirection = 1;
         radarState.scanCycle++;
     }
