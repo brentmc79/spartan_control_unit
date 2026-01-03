@@ -387,13 +387,17 @@ void renderBiometricScreenSaver(TFT_eSPI& tft) {
 #define RADAR_TARGET 0xFFE0             // Yellow for targets
 #define RADAR_TARGET_PULSE 0xFFFF       // White when pulsing
 
-// Radar layout constants
-#define RADAR_CENTER_X 160
-#define RADAR_CENTER_Y 140
+// Radar layout constants (screen coordinates)
+#define RADAR_LEFT_BORDER 57
+#define RADAR_RIGHT_BORDER 263
+#define RADAR_SPRITE_WIDTH (RADAR_RIGHT_BORDER - RADAR_LEFT_BORDER)
+#define RADAR_SPRITE_HEIGHT SCREEN_HEIGHT
+
+// Radar layout constants (sprite-local coordinates)
+#define RADAR_CENTER_X_LOCAL (160 - RADAR_LEFT_BORDER)  // Center X within sprite
+#define RADAR_CENTER_Y_LOCAL 140
 #define RADAR_RADIUS 120
 #define RADAR_INNER_RADIUS 20
-#define RADAR_LEFT_BORDER 55
-#define RADAR_RIGHT_BORDER 264
 
 // Target constants
 #define MAX_TARGETS 3
@@ -402,6 +406,9 @@ void renderBiometricScreenSaver(TFT_eSPI& tft) {
 // Sweep parameters
 #define SWEEP_SPEED 1.5f          // Degrees per frame
 #define SWEEP_TRAIL_ANGLE 15.0f   // Degrees of fade trail behind sweep
+
+// Radar sprite (created once, reused each frame)
+static TFT_eSprite* radarSprite = nullptr;
 
 // Target structure
 struct RadarTarget {
@@ -437,17 +444,17 @@ static float degToRad(float deg) {
     return deg * 3.14159f / 180.0f;
 }
 
-// Draw radar arcs (range rings)
-static void drawRadarArcs(TFT_eSPI& tft) {
+// Draw radar arcs (range rings) - draws to sprite with local coordinates
+static void drawRadarArcs(TFT_eSprite& spr) {
     // Draw concentric arcs for range indication
     for (int r = RADAR_INNER_RADIUS; r <= RADAR_RADIUS; r += 25) {
         // Draw arc using line segments (semi-circle, 180 degrees)
         for (int deg = 0; deg < 180; deg += 3) {
             float rad = degToRad(deg);
-            int x = RADAR_CENTER_X + (int)(cos(rad) * r);
-            int y = RADAR_CENTER_Y - (int)(sin(rad) * r);
-            if (y >= 0 && y < SCREEN_HEIGHT && x > RADAR_LEFT_BORDER && x < RADAR_RIGHT_BORDER) {
-                tft.drawPixel(x, y, RADAR_VERY_DIM);
+            int x = RADAR_CENTER_X_LOCAL + (int)(cos(rad) * r);
+            int y = RADAR_CENTER_Y_LOCAL - (int)(sin(rad) * r);
+            if (y >= 0 && y < RADAR_SPRITE_HEIGHT && x >= 0 && x < RADAR_SPRITE_WIDTH) {
+                spr.drawPixel(x, y, RADAR_VERY_DIM);
             }
         }
     }
@@ -455,77 +462,64 @@ static void drawRadarArcs(TFT_eSPI& tft) {
     // Draw radial lines at 45 degree intervals
     for (int deg = 0; deg <= 180; deg += 45) {
         float rad = degToRad(deg);
-        int x2 = RADAR_CENTER_X + (int)(cos(rad) * RADAR_RADIUS);
-        int y2 = RADAR_CENTER_Y - (int)(sin(rad) * RADAR_RADIUS);
-        if (x2 < RADAR_LEFT_BORDER) {
-            x2 = RADAR_LEFT_BORDER;
-        } else if (x2 > RADAR_RIGHT_BORDER) {
-            x2 = RADAR_RIGHT_BORDER;
-        }
-        tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, x2, y2, RADAR_VERY_DIM);
+        int x2 = RADAR_CENTER_X_LOCAL + (int)(cos(rad) * RADAR_RADIUS);
+        int y2 = RADAR_CENTER_Y_LOCAL - (int)(sin(rad) * RADAR_RADIUS);
+        // Clamp to sprite bounds
+        if (x2 < 0) x2 = 0;
+        else if (x2 >= RADAR_SPRITE_WIDTH) x2 = RADAR_SPRITE_WIDTH - 1;
+        spr.drawLine(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, x2, y2, RADAR_VERY_DIM);
     }
 
     // Draw baseline (flat edge of semi-circle)
-    tft.drawFastHLine(RADAR_LEFT_BORDER, RADAR_CENTER_Y, RADAR_RIGHT_BORDER - RADAR_LEFT_BORDER, RADAR_DIM);
+    spr.drawFastHLine(0, RADAR_CENTER_Y_LOCAL, RADAR_SPRITE_WIDTH, RADAR_DIM);
 }
 
-// Draw sweep line with fade trail
-static void drawSweepLine(TFT_eSPI& tft) {
+// Draw sweep line with fade trail - draws to sprite with local coordinates
+static void drawSweepLine(TFT_eSprite& spr) {
     float sweepRad = degToRad(radarState.sweepAngle);
 
     // Draw main sweep line
-    int x2 = RADAR_CENTER_X + (int)(cos(sweepRad) * RADAR_RADIUS);
-    int y2 = RADAR_CENTER_Y - (int)(sin(sweepRad) * RADAR_RADIUS);
-    if (x2 < RADAR_LEFT_BORDER) {
-        x2 = RADAR_LEFT_BORDER;
-    } else if (x2 > RADAR_RIGHT_BORDER) {
-        x2 = RADAR_RIGHT_BORDER;
-    }
-    tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, x2, y2, RADAR_SWEEP);
+    int x2 = RADAR_CENTER_X_LOCAL + (int)(cos(sweepRad) * RADAR_RADIUS);
+    int y2 = RADAR_CENTER_Y_LOCAL - (int)(sin(sweepRad) * RADAR_RADIUS);
+    // Clamp to sprite bounds
+    if (x2 < 0) x2 = 0;
+    else if (x2 >= RADAR_SPRITE_WIDTH) x2 = RADAR_SPRITE_WIDTH - 1;
+    spr.drawLine(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, x2, y2, RADAR_SWEEP);
 
     // Draw fade trail behind sweep
     for (int i = 1; i <= 5; i++) {
         float trailAngle = radarState.sweepAngle - (radarState.sweepDirection * i * 3.0f);
-        //if (trailAngle < 0) trailAngle += 180;
-        //if (trailAngle > 180) trailAngle -= 180;
 
         if (trailAngle > 0 && trailAngle < 180) {
             float trailRad = degToRad(trailAngle);
-            int tx = RADAR_CENTER_X + (int)(cos(trailRad) * RADAR_RADIUS);
-            int ty = RADAR_CENTER_Y - (int)(sin(trailRad) * RADAR_RADIUS);
-            if (tx < RADAR_LEFT_BORDER) {
-                tx = RADAR_LEFT_BORDER;
-            } else if (tx > RADAR_RIGHT_BORDER) {
-                tx = RADAR_RIGHT_BORDER;
-            }
+            int tx = RADAR_CENTER_X_LOCAL + (int)(cos(trailRad) * RADAR_RADIUS);
+            int ty = RADAR_CENTER_Y_LOCAL - (int)(sin(trailRad) * RADAR_RADIUS);
+            // Clamp to sprite bounds
+            if (tx < 0) tx = 0;
+            else if (tx >= RADAR_SPRITE_WIDTH) tx = RADAR_SPRITE_WIDTH - 1;
 
             // Fade color based on distance from sweep
             uint16_t fadeColor = (i <= 2) ? RADAR_DIM : RADAR_VERY_DIM;
-            if (ty >= 0 && ty < SCREEN_HEIGHT) {
-                if (tx < RADAR_LEFT_BORDER) {
-                    tx = RADAR_LEFT_BORDER;
-                } else if (tx > RADAR_RIGHT_BORDER) {
-                    tx = RADAR_RIGHT_BORDER;
-                }
-                tft.drawLine(RADAR_CENTER_X, RADAR_CENTER_Y, tx, ty, fadeColor);
+            if (ty >= 0 && ty < RADAR_SPRITE_HEIGHT) {
+                spr.drawLine(RADAR_CENTER_X_LOCAL, RADAR_CENTER_Y_LOCAL, tx, ty, fadeColor);
             }
         }
     }
 }
 
-// Draw targets on radar
-static void drawTargets(TFT_eSPI& tft) {
+// Draw targets on radar - draws to sprite with local coordinates
+static void drawTargets(TFT_eSprite& spr) {
     for (int i = 0; i < MAX_TARGETS; i++) {
         RadarTarget& target = radarState.targets[i];
         if (!target.active) continue;
 
         float rad = degToRad(target.angle);
         int dist = RADAR_INNER_RADIUS + (int)(target.distance * (RADAR_RADIUS - RADAR_INNER_RADIUS));
-        int x = RADAR_CENTER_X + (int)(cos(rad) * dist);
-        int y = RADAR_CENTER_Y - (int)(sin(rad) * dist);
+        int x = RADAR_CENTER_X_LOCAL + (int)(cos(rad) * dist);
+        int y = RADAR_CENTER_Y_LOCAL - (int)(sin(rad) * dist);
 
-        // Check bounds
-        if (y < 0 || y >= SCREEN_HEIGHT) continue;
+        // Check bounds (sprite-local)
+        if (y < 0 || y >= RADAR_SPRITE_HEIGHT) continue;
 
         // Determine color based on pulse state
         uint16_t color;
@@ -536,19 +530,19 @@ static void drawTargets(TFT_eSPI& tft) {
         }
 
         // Draw target blip (small cross/diamond)
-        if (x > RADAR_LEFT_BORDER+1 && x < RADAR_RIGHT_BORDER-1) {
-            tft.drawPixel(x, y, color);
-            tft.drawPixel(x - 1, y, color);
-            tft.drawPixel(x + 1, y, color);
-            tft.drawPixel(x, y - 1, color);
-            tft.drawPixel(x, y + 1, color);
+        if (x > 2 && x < RADAR_SPRITE_WIDTH - 2) {
+            spr.drawPixel(x, y, color);
+            spr.drawPixel(x - 1, y, color);
+            spr.drawPixel(x + 1, y, color);
+            spr.drawPixel(x, y - 1, color);
+            spr.drawPixel(x, y + 1, color);
 
             // Larger indicator when pulsing
             if (target.pulsing) {
-                tft.drawPixel(x - 2, y, color);
-                tft.drawPixel(x + 2, y, color);
-                tft.drawPixel(x, y - 2, color);
-                tft.drawPixel(x, y + 2, color);
+                spr.drawPixel(x - 2, y, color);
+                spr.drawPixel(x + 2, y, color);
+                spr.drawPixel(x, y - 2, color);
+                spr.drawPixel(x, y + 2, color);
             }
         }
     }
@@ -675,7 +669,7 @@ static void updateTargets() {
                 target.direction = (random(2) == 0) ? 1 : -1;
                 target.angle = (target.direction == 1) ? 5.0f : 175.0f;
                 target.distance = 0.3f + (random(50) / 100.0f);  // 0.3 to 0.8
-                target.speed = 0.3f + (random(30) / 100.0f);     // 0.3 to 0.6
+                target.speed = 0.2f + (random(25) / 100.0f);     // 0.2 to 0.45
                 target.distSpeed = (random(20) - 10) / 500.0f;   // Small radial drift
                 target.pulsing = false;
                 target.pulseCount = 0;
@@ -702,6 +696,13 @@ void initRadarScreenSaver() {
         radarState.targets[i].pulsing = false;
         radarState.targets[i].pulseCount = 0;
     }
+
+    // Clean up existing sprite if any
+    if (radarSprite != nullptr) {
+        radarSprite->deleteSprite();
+        delete radarSprite;
+        radarSprite = nullptr;
+    }
 }
 
 void renderRadarScreenSaver(TFT_eSPI& tft) {
@@ -711,6 +712,12 @@ void renderRadarScreenSaver(TFT_eSPI& tft) {
     if (!radarState.initialized) {
         initRadarScreenSaver();
         tft.fillScreen(TFT_BLACK);
+
+        // Create sprite for radar area
+        radarSprite = new TFT_eSprite(&tft);
+        radarSprite->setColorDepth(16);
+        radarSprite->createSprite(RADAR_SPRITE_WIDTH, RADAR_SPRITE_HEIGHT);
+
         radarState.initialized = true;
         radarState.lastUpdate = now;
         radarState.lastDataChange = now;
@@ -721,11 +728,6 @@ void renderRadarScreenSaver(TFT_eSPI& tft) {
         return;
     }
     radarState.lastUpdate = now;
-
-    tft.startWrite();
-
-    // Clear radar area (preserve side panels partially)
-    tft.fillRect(55, 0, 210, SCREEN_HEIGHT, TFT_BLACK);
 
     // Update sweep angle
     radarState.sweepAngle += SWEEP_SPEED * radarState.sweepDirection;
@@ -751,12 +753,18 @@ void renderRadarScreenSaver(TFT_eSPI& tft) {
         radarState.lastDataChange = now;
     }
 
-    // Render radar elements
-    drawRadarArcs(tft);
-    drawSweepLine(tft);
-    drawTargets(tft);
+    // Clear sprite and draw radar elements to it
+    radarSprite->fillSprite(TFT_BLACK);
+    drawRadarArcs(*radarSprite);
+    drawSweepLine(*radarSprite);
+    drawTargets(*radarSprite);
+
+    // Push sprite to display at radar area position
+    radarSprite->pushSprite(RADAR_LEFT_BORDER, 0);
+
+    // Draw side panels directly to TFT (they don't need sprite buffering)
+    tft.startWrite();
     drawLeftPanel(tft);
     drawRightPanel(tft);
-
     tft.endWrite();
 }
