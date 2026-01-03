@@ -559,40 +559,58 @@ static void drawBorders(TFT_eSprite& spr) {
 
 // Draw left panel with alphanumeric data (draws directly to TFT)
 static void drawLeftPanel(TFT_eSPI& tft) {
-    int panelX = 5;
     int panelY = 20;
+    int cursorY = panelY + 10;
+    int textHeight = 10;
+
+    // Draw border with top/left/bottom edges, mirrored from right panel
+    int leftX = 2;
+    int rightX = RADAR_LEFT_BORDER - 2;
+    int topY = panelY;
+    int bottomY = panelY + 119;
+    int radius = 4;
+
+    // Top horizontal line
+    tft.drawFastHLine(leftX + radius, topY, rightX - leftX - radius, RADAR_DIM);
+    // Top arc (cornername 1 = top-right quadrant, mirrored from right panel)
+    tft.drawCircleHelper(leftX + radius, topY + radius, radius, 1, RADAR_DIM);
+    // Left vertical line (between the two arcs)
+    tft.drawFastVLine(leftX, topY + radius, bottomY - topY - 2 * radius + 1, RADAR_DIM);
+    // Bottom arc (cornername 8 = top-left quadrant, mirrored from right panel)
+    tft.drawCircleHelper(leftX + radius, bottomY - radius, radius, 8, RADAR_DIM);
+    // Bottom horizontal line
+    tft.drawFastHLine(leftX + radius, bottomY, rightX - leftX - radius, RADAR_DIM);
+
+    int panelX = 7;  // Text inset from left edge
 
     tft.setTextColor(RADAR_DIM, TFT_BLACK);
     tft.setTextSize(1);
 
     // Title
-    tft.setCursor(panelX, panelY);
+    tft.setCursor(panelX, cursorY);
     tft.print("TACTICAL");
 
     // Scan cycle
-    tft.setCursor(panelX, panelY + 15);
+    tft.setCursor(panelX, cursorY += (textHeight + 10));
     tft.print("SCAN:");
     char scanStr[8];
     snprintf(scanStr, sizeof(scanStr), "%04d", radarState.scanCycle);
-    tft.setCursor(panelX, panelY + 25);
+    tft.setCursor(panelX, cursorY += textHeight);
     tft.print(scanStr);
 
     // Target count
-    tft.setCursor(panelX, panelY + 45);
+    tft.setCursor(panelX, cursorY += textHeight + 10);
     tft.print("TARGETS");
-    tft.setCursor(panelX, panelY + 55);
+    tft.setCursor(panelX, cursorY += textHeight);
     char contactStr[4];
     snprintf(contactStr, sizeof(contactStr), "%d", radarState.contactCount);
     tft.print(contactStr);
 
     // Mode indicator
-    tft.setCursor(panelX, panelY + 75);
+    tft.setCursor(panelX, cursorY += textHeight + 10);
     tft.print("MODE:");
-    tft.setCursor(panelX, panelY + 85);
+    tft.setCursor(panelX, cursorY += textHeight);
     tft.print("SWEEP");
-
-    // Draw border line
-    tft.drawFastVLine(RADAR_LEFT_BORDER - 2, panelY, 95, RADAR_VERY_DIM);
 }
 
 // Draw right panel with alphanumeric data (draws directly to TFT)
